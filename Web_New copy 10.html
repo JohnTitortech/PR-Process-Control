@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Control Process PR</title>
+
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #fafafa;
+    }
+
+    h1 {
+      margin-bottom: 16px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .row {
+      display: flex;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      flex: 1;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    canvas {
+      max-height: 260px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Dashboard Control Process PR</h1>
+<input type="file" id="upload" accept=".xlsx,.xls" />
+
+<div class="container" id="chartContainer"></div>
+
+<script>
+/* =========================
+   CONFIG
+========================= */
+const PROJECT_MAP = {
+  "230-24-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-FORTUNER CCV": "Fortuner CCV (Reguler)",
+  "070-23-VEHICLE CONVERSION-PROJECT-CONV-AMBULANCE": "Fortuner Ambulance (Project)",
+  "143-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-AMBULANCE FORTUNER": "Fortuner Ambulance (Reguler)",
+  "163-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-SIENTA WELCAB": "Sienta Welcab (Reguler)",
+};
+
+const ACTIVE_USER = "MILA";
+
+const EXCLUDED_STATUS = new Set([
+  "NOT APPROVE CL",
+  "NOT RECEIVE PURCHASING",
+  "NOT APPROVE MANAJER",
+  "NOT APPROVE GM",
+  "NOT APPROVE FGM",
+  "NOT APPROVE CL COST CONTROL",
+  "NOT APPROVE MANAGER COST CONTROL",
+  "PO CANCEL",
+  "NOT APPROVE CL PURCHASING",
+  "NOT APPROVE MANAGER PURCHASING",
+  "NOT APPROVE GM PURCHASING",
+  "NOT APPROVE FGM PURCHASING",
+  "DELETE PR"
+]);
+
+const DETAIL_COLUMNS = [
+  "NO",
+  "PR NO",
+  "PR DATE",
+  "SECTION",
+  "USER",
+  "STATUS",
+  "DATE REQUIRED",
+  "ITEM NAME",
+  "UM",
+  "QTY",
+  "CURR",
+  "PRICE",
+  "AMOUNT",
+  "STATUS PR",
+  "PROCESS DATE",
+  "PROCESS USER",
+  "BIIL APPROVAL",
+  "DETAIL",
+  "REMARK"
+];
+
+let rows = [];
+let charts = [];
+
+/* =========================
+   UTIL
+========================= */
+function normalizeKey(key) {
+  return key.toString().toUpperCase().replace(/\s+/g, " ").trim();
+}
+
+function detectProject(bill) {
+  if (!bill) return null;
+  const text = bill.toString().toUpperCase().replace(/\s+/g, " ");
+  return Object.keys(PROJECT_MAP).find(k => text.includes(k)) || null;
+}
+
+function parseProcessDate(value) {
+  if (!value) return null;
+  const datePart = value.toString().split(" ")[0];
+  const d = new Date(datePart + "T00:00:00");
+  return isNaN(d) ? null : d;
+}
+
+function getDelayColor(delay) {
+  if (delay === 1) return "#2ecc71";   // hijau
+  if (delay === 2) return "#f1c40f";   // kuning
+  if (delay === 3) return "#e67e22";   // orange
+  return "#e74c3c";                    // merah (>=4)
+}
+
+
+function closeAllDetails() {
+  Object.keys(PROJECT_MAP).forEach(k => {
+    const el = document.getElementById(`detail-${k}`);
+    if (el) el.style.display = "none";
+  });
+}
+
+
+
+/* =========================
+   PIE CHART (PER PR) – TIDAK DIUBAH
+========================= */
+function buildPieData(projectKey) {
+  const map = {};
+  // STATUS → Set(PR)
+
+  rows.forEach(r => {
+    if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
+    if (!r["PR NO"] || !r["STATUS PR"]) return;
+
+    const status = r["STATUS PR"];
+    if (!map[status]) map[status] = new Set();
+    map[status].add(r["PR NO"]);
+  });
+
+  const labels = Object.keys(map);
+
+  return {
+    labels,
+    data: labels.map(l => map[l].size),
+    prMap: labels.map(l => Array.from(map[l]))
+  };
+}
+
+/* =========================
+   BAR CHART (PER PR – FIXED)
+========================= */
+function buildDelayData(projectKey) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const statusMap = {};
+  // STATUS → delay → [PR]
+
+  rows.forEach(r => {
+    if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
+    if (!r["PR NO"] || !r["STATUS PR"]) return;
+
+    const d = parseProcessDate(r["PROCESS DATE"]);
+    if (!d) return;
+
+    const diff = Math.floor((today - d) / 86400000);
+    if (diff <= 0) return;
+
+    const status = r["STATUS PR"];
+    if (!statusMap[status]) statusMap[status] = {};
+    if (!statusMap[status][diff]) statusMap[status][diff] = [];
+
+    if (!statusMap[status][diff].includes(r["PR NO"])) {
+      statusMap[status][diff].push(r["PR NO"]);
+    }
+  });
+
+  const labels = Object.keys(statusMap);
+  const datasets = [];
+
+  labels.forEach(status => {
+    const delays = Object.keys(statusMap[status])
+      .map(Number)
+      .sort((a,b) => a-b);
+
+    let prev = 0;
+
+    delays.forEach(delay => {
+      const delta = delay - prev;
+
+      datasets.push({
+        label: status,
+        data: labels.map(l => l === status ? delta : 0),
+        delayValue: delay,
+        prList: statusMap[status][delay],
+        backgroundColor: getDelayColor(delay)
+      });
+
+      prev = delay;
+    });
+  });
+
+  return { labels, datasets };
+}
+
+function showDetailTable(projectKey, status, prList, delay = null) {
+  closeAllDetails();
+  const filtered = rows.filter(r => {
+    if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return false;
+    if (r["STATUS PR"] !== status) return false;
+    if (!prList.includes(r["PR NO"])) return false;
+
+    if (delay !== null) {
+      const d = parseProcessDate(r["PROCESS DATE"]);
+      if (!d) return false;
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      const diff = Math.floor((today - d) / 86400000);
+      if (diff !== delay) return false;
+    }
+
+    return true;
+  });
+
+  renderDetailTable(filtered, projectKey, status);
+}
+
+function renderDetailTable(data, projectKey, status) {
+  const slot = document.getElementById(`detail-${projectKey}`);
+  slot.innerHTML = "";
+  slot.style.display = "block";
+
+
+  let html = `
+    <div class="card" id="detailTable">
+      <h2>
+        ${PROJECT_MAP[projectKey]}<br>
+        Status: ${status}<br>
+        Total Baris: ${data.length}
+      </h2>
+
+      <div style="overflow:auto; max-height:400px;">
+        <table border="1" cellpadding="6" cellspacing="0"
+          style="font-size:12px; white-space:nowrap;">
+          <thead>
+            <tr>
+              ${DETAIL_COLUMNS.map(c => `<th>${c}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+  data.forEach(r => {
+    html += `
+      <tr>
+        ${DETAIL_COLUMNS.map(c => `<td>${r[c] ?? ""}</td>`).join("")}
+      </tr>
+    `;
+  });
+
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  slot.appendChild(
+  document.createRange().createContextualFragment(html)
+);
+}
+
+/* =========================
+   RENDER
+========================= */
+function clearCharts() {
+  charts.forEach(c => c.destroy());
+  charts = [];
+  document.getElementById("chartContainer").innerHTML = "";
+}
+
+function renderCharts() {
+  clearCharts();
+  const container = document.getElementById("chartContainer");
+
+  Object.keys(PROJECT_MAP).forEach(key => {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const pieCard = document.createElement("div");
+    pieCard.className = "card";
+
+    const barCard = document.createElement("div");
+    barCard.className = "card";
+
+    const pieTitle = document.createElement("h2");
+    pieTitle.textContent = PROJECT_MAP[key];
+
+    const barTitle = document.createElement("h2");
+    barTitle.textContent = "PR Aging";
+
+    const pieCanvas = document.createElement("canvas");
+    const barCanvas = document.createElement("canvas");
+
+    pieCard.appendChild(pieTitle);
+    pieCard.appendChild(pieCanvas);
+
+    barCard.appendChild(barTitle);
+    barCard.appendChild(barCanvas);
+
+    row.appendChild(pieCard);
+    row.appendChild(barCard);
+    container.appendChild(row);
+
+    // 🔽 TAMBAHKAN SLOT DETAIL KHUSUS PROJECT
+    const detailSlot = document.createElement("div");
+    detailSlot.id = `detail-${key}`;
+    detailSlot.style.display = "none";
+    container.appendChild(detailSlot);
+
+    const pie = buildPieData(key);
+    const bar = buildDelayData(key);
+
+    if (pie.data.length) {
+      charts.push(new Chart(pieCanvas, {
+        type: "pie",
+        data: {
+          labels: pie.labels,
+          datasets: [{
+            data: pie.data,
+            prMap: pie.prMap,
+            projectKey: key
+          }]
+        },
+       options: {
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const idx = elements[0].index;
+            const status = pie.labels[idx];
+            const prList = pie.prMap[idx];
+            showDetailTable(key, status, prList);
+          },
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const prs = ctx.dataset.prMap[ctx.dataIndex];
+                  return [
+                    `Total PR: ${prs.length}`,
+                    `PR: ${prs.join(", ")}`
+                  ];
+                }
+              }
+            }
+          }
+        }
+      }));
+    }
+
+    if (bar.datasets.length) {
+      charts.push(new Chart(barCanvas, {
+        type: "bar",
+        data: {
+          labels: bar.labels,
+          datasets: bar.datasets
+        },
+        options: {
+          indexAxis: "y",
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const el = elements[0];
+            const dataset = bar.datasets[el.datasetIndex];
+            const status = bar.labels[el.index];
+            showDetailTable(
+              key,                // project
+              status,             // status PR
+              dataset.prList,     // PR list
+              dataset.delayValue  // delay (opsional, buat info)
+            );
+          },
+          scales: {
+            x: { stacked: true, beginAtZero: true },
+            y: { stacked: true }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const d = ctx.dataset;
+                  return [
+                    `Aging: ${d.delayValue} days`,
+                    `PR: ${d.prList.join(", ")}`
+                  ];
+                }
+              }
+            }
+          }
+        }
+      }));
+    }
+  });
+}
+
+/* =========================
+   UPLOAD
+========================= */
+document.getElementById("upload").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = evt => {
+    const data = new Uint8Array(evt.target.result);
+    const wb = XLSX.read(data, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    rows = raw
+      .map(r => {
+        const o = {};
+        Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
+        return o;
+      })
+      .filter(r => r["USER"] === ACTIVE_USER);
+      
+    renderCharts();
+  };
+
+  reader.readAsArrayBuffer(file);
+});
+</script>
+
+</body>
+</html>
