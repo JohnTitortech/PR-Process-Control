@@ -10,6 +10,8 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,11 +54,38 @@
     canvas {
       max-height: 260px;
     }
+
+
+    /* === PIE HTML LEGEND === */
+    .pie-legend {
+      display: grid;
+      grid-auto-flow: column;     /* ini kuncinya */
+      grid-template-rows: repeat(8, auto); /* 8 ke bawah */
+      gap: 6px 16px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .pie-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pie-legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+
   </style>
 </head>
 <body>
 
-<h1>Dashboard Control Process PR</h1>
+<h1 style="text-align: center;">Dashboard Control Process PR</h1>
+<div id="periodInfo" style="margin-bottom:12px;font-weight:bold;"></div>
 <input type="file" id="upload" accept=".xlsx,.xls" />
 
 <div class="container" id="chartContainer"></div>
@@ -66,13 +95,34 @@
    CONFIG
 ========================= */
 const PROJECT_MAP = {
-  "230-24-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-FORTUNER CCV": "Fortuner CCV (Reguler)",
-  "070-23-VEHICLE CONVERSION-PROJECT-CONV-AMBULANCE": "Fortuner Ambulance (Project)",
-  "143-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-AMBULANCE FORTUNER": "Fortuner Ambulance (Reguler)",
-  "163-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-SIENTA WELCAB": "Sienta Welcab (Reguler)",
+  "230-24-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-FORTUNER CCV": "Fortuner CCV (Reguler) - Item PR",
+  "070-23-VEHICLE CONVERSION-PROJECT-CONV-AMBULANCE": "Fortuner Ambulance (Project) -  - Item PR",
+  "143-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-AMBULANCE FORTUNER": "Fortuner Ambulance (Reguler) - Item PR",
+  "163-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-SIENTA WELCAB": "Sienta Welcab (Reguler) - Item PR",
 };
 
 const ACTIVE_USER = "MILA";
+
+const STATUS_PR = [
+  "NEW PR",
+  "APPROVE CL",
+  "RECEIVE PURCHASING",
+  "INPUT PRICE",
+  "APPROVE MANAGER",
+  // "APPROVE GM",
+  // "APPROVE FGM",
+  "APPROVE CL COST CONTROL",
+  "APPROVE MANAGER COST CONTROL",
+  "PRICE EVALUATION OK",
+  "APPROVE CL PURCHASING",
+  "APPROVE MANAGER PURCHASING",
+  "APPROVE GM PURCHASING",
+  // "APPROVE FGM PURCHASING",
+  "PO PUBLISH",
+  "PO RECEIVE SUPPLIER",
+  "CREATE PACKING SLIP",
+  "RECEIVED"
+]
 
 const EXCLUDED_STATUS = new Set([
   "NOT APPROVE CL",
@@ -89,6 +139,11 @@ const EXCLUDED_STATUS = new Set([
   "NOT APPROVE FGM PURCHASING",
   "DELETE PR"
 ]);
+
+const BAR_EXCLUDED_STATUS = new Set([
+  "RECEIVED"
+]);
+
 
 const DETAIL_COLUMNS = [
   "NO",
@@ -118,6 +173,40 @@ let charts = [];
 /* =========================
    UTIL
 ========================= */
+
+function parsePRDate(value) {
+  if (!value) return null;
+  const d = new Date(value + "T00:00:00");
+  return isNaN(d) ? null : d;
+}
+
+function formatDateID(date) {
+  return date.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
+
+function getPRDatePeriod(rows) {
+  const dates = rows
+    .map(r => parsePRDate(r["PR DATE"]))
+    .filter(d => d !== null);
+
+  if (!dates.length) return null;
+
+  const min = new Date(Math.min(...dates));
+  const max = new Date(Math.max(...dates));
+
+  return `Periode ${formatDateID(min)} - ${formatDateID(max)}`;
+}
+
+function getOrderedBarStatus(allStatusFromData) {
+  return STATUS_PR
+    //.filter(s => !BAR_EXCLUDED_STATUS.has(s))
+    .filter(s => allStatusFromData.includes(s));
+}
+
 function normalizeKey(key) {
   return key.toString().toUpperCase().replace(/\s+/g, " ").trim();
 }
@@ -126,6 +215,12 @@ function detectProject(bill) {
   if (!bill) return null;
   const text = bill.toString().toUpperCase().replace(/\s+/g, " ");
   return Object.keys(PROJECT_MAP).find(k => text.includes(k)) || null;
+}
+
+function getOrderedStatus(allStatusFromData) {
+  const master = STATUS_PR.slice(); // urutan resmi
+  const extras = allStatusFromData.filter(s => !master.includes(s));
+  return [...master, ...extras];
 }
 
 function parseProcessDate(value) {
@@ -156,8 +251,7 @@ function closeAllDetails() {
    PIE CHART (PER PR) – TIDAK DIUBAH
 ========================= */
 function buildPieData(projectKey) {
-  const map = {};
-  // STATUS → Set(PR)
+  const map = {}; // STATUS → Set(PR)
 
   rows.forEach(r => {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
@@ -168,12 +262,12 @@ function buildPieData(projectKey) {
     map[status].add(r["PR NO"]);
   });
 
-  const labels = Object.keys(map);
+  const orderedStatus = getOrderedStatus(Object.keys(map));
 
   return {
-    labels,
-    data: labels.map(l => map[l].size),
-    prMap: labels.map(l => Array.from(map[l]))
+    labels: orderedStatus,
+    data: orderedStatus.map(s => map[s] ? map[s].size : 0),
+    prMap: orderedStatus.map(s => map[s] ? Array.from(map[s]) : [])
   };
 }
 
@@ -191,11 +285,17 @@ function buildDelayData(projectKey) {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
     if (!r["PR NO"] || !r["STATUS PR"]) return;
 
+    // ⛔ STOP RECEIVED DI BAR CHART
+    if (r["STATUS PR"] === "RECEIVED") return;
+
     const d = parseProcessDate(r["PROCESS DATE"]);
     if (!d) return;
 
-    const diff = Math.floor((today - d) / 86400000);
+    let diff = Math.floor((today - d) / 86400000);
     if (diff <= 0) return;
+
+    // 🔒 kunci maksimum days 14 hari
+    if (diff > 14) diff = 14;
 
     const status = r["STATUS PR"];
     if (!statusMap[status]) statusMap[status] = {};
@@ -206,13 +306,15 @@ function buildDelayData(projectKey) {
     }
   });
 
-  const labels = Object.keys(statusMap);
+  const labels = getOrderedBarStatus(Object.keys(statusMap));
+
   const datasets = [];
 
   labels.forEach(status => {
+    if (!statusMap[status]) return; // status master tapi kosong
     const delays = Object.keys(statusMap[status])
-      .map(Number)
-      .sort((a,b) => a-b);
+    .map(Number)
+    .sort((a,b) => a-b);
 
     let prev = 0;
 
@@ -330,13 +432,19 @@ function renderCharts() {
     pieTitle.textContent = PROJECT_MAP[key];
 
     const barTitle = document.createElement("h2");
-    barTitle.textContent = "PR Aging";
+    barTitle.textContent = "PR Delay Status (Days)";
 
     const pieCanvas = document.createElement("canvas");
     const barCanvas = document.createElement("canvas");
 
     pieCard.appendChild(pieTitle);
     pieCard.appendChild(pieCanvas);
+
+    const legendDiv = document.createElement("div");
+    legendDiv.className = "pie-legend";
+    pieCard.appendChild(legendDiv);
+
+
 
     barCard.appendChild(barTitle);
     barCard.appendChild(barCanvas);
@@ -355,26 +463,38 @@ function renderCharts() {
     const bar = buildDelayData(key);
 
     if (pie.data.length) {
-      charts.push(new Chart(pieCanvas, {
+
+      const colors = pie.labels.map((_, i) =>
+        `hsl(${(i * 360) / pie.labels.length}, 65%, 55%)`
+      );
+
+      const pieChart = new Chart(pieCanvas, {
         type: "pie",
         data: {
           labels: pie.labels,
           datasets: [{
             data: pie.data,
             prMap: pie.prMap,
-            projectKey: key
+            projectKey: key,
+            backgroundColor: colors
           }]
         },
-       options: {
-          onClick: (evt, elements) => {
-            if (!elements.length) return;
-            const idx = elements[0].index;
-            const status = pie.labels[idx];
-            const prList = pie.prMap[idx];
-            showDetailTable(key, status, prList);
-          },
+        options: {
           plugins: {
-            legend: { position: "bottom" },
+            legend: { display: false },
+
+            datalabels: {
+              color: "#fff",
+              font: {
+                weight: "bold",
+                size: 12
+              },
+              formatter: (value, ctx) => {
+                if (value === 0) return "";
+                return value;
+              }
+            },
+
             tooltip: {
               callbacks: {
                 label: ctx => {
@@ -386,9 +506,43 @@ function renderCharts() {
                 }
               }
             }
+          },
+
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const idx = elements[0].index;
+            const status = pie.labels[idx];
+            const prList = pie.prMap[idx];
+            showDetailTable(key, status, prList);
           }
         }
-      }));
+      });
+
+      charts.push(pieChart);
+
+
+      pie.labels.forEach((label, i) => {
+        const item = document.createElement("div");
+        item.className = "pie-legend-item";
+
+        const colorBox = document.createElement("div");
+        colorBox.className = "pie-legend-color";
+        colorBox.style.background = colors[i];
+
+        const text = document.createElement("span");
+        if (label === "RECEIVED") {
+          text.textContent = `${label} (${pie.data[i]}) - CLOSED`;
+        } else {
+          text.textContent = `${label} (${pie.data[i]})`;
+        }
+
+
+        item.appendChild(colorBox);
+        item.appendChild(text);
+        legendDiv.appendChild(item);
+      });
+
+
     }
 
     if (bar.datasets.length) {
@@ -413,17 +567,36 @@ function renderCharts() {
             );
           },
           scales: {
-            x: { stacked: true, beginAtZero: true },
-            y: { stacked: true }
+            x: {
+              stacked: true,
+              beginAtZero: true,
+              min: 0,
+              max: 14,
+              ticks: {
+                stepSize: 1
+              },
+              title: {
+                display: true,
+                text: "(Days)"
+              }
+            },
+            y: {
+              stacked: true
+            }
           },
           plugins: {
             legend: { display: false },
+
+            datalabels: {
+              display:false
+            },
             tooltip: {
               callbacks: {
                 label: ctx => {
                   const d = ctx.dataset;
                   return [
-                    `Aging: ${d.delayValue} days`,
+                    `Delay: ${d.delayValue} days`,
+                    `Total PR: ${d.prList.length}`,
                     `PR: ${d.prList.join(", ")}`
                   ];
                 }
@@ -451,13 +624,22 @@ document.getElementById("upload").addEventListener("change", e => {
     const raw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
     rows = raw
-      .map(r => {
-        const o = {};
-        Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
-        return o;
-      })
-      .filter(r => r["USER"] === ACTIVE_USER);
-      
+    .map(r => {
+      const o = {};
+      Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
+      return o;
+    })
+    .filter(r =>
+      r["USER"] === ACTIVE_USER &&
+      !EXCLUDED_STATUS.has(r["STATUS PR"])
+    );
+
+    const periodText = getPRDatePeriod(rows);
+    document.getElementById("periodInfo").textContent =
+    periodText ? periodText : "";
+  
+    Chart.register(ChartDataLabels);
+
     renderCharts();
   };
 
@@ -466,5 +648,4 @@ document.getElementById("upload").addEventListener("change", e => {
 </script>
 
 </body>
-
 </html>
