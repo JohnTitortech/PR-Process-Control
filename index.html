@@ -183,7 +183,7 @@ let charts = [];
 
 async function loadDataFromSupabase() {
   const { data, error } = await supabase
-    .from("pr_data") // ⬅️ GANTI sesuai nama tabelmu
+    .from("PR LIST") // ⬅️ GANTI sesuai nama tabelmu
     .select("*");
 
   if (error) {
@@ -656,3 +656,4 @@ loadDataFromSupabase();
 
 </body>
 </html>
+
