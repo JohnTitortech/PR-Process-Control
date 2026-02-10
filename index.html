@@ -98,11 +98,11 @@
 const SUPABASE_URL = "https://epawoaoslnwlyrcwkfvb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_e8ZNaYuT78gqBIiunJZm7g_HWPMNFQG";
 
-const supabase = supabase.createClient(
+const { createClient } = supabase;
+const supabaseClient = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
-
 
 const PROJECT_MAP = {
   "230-24-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-FORTUNER CCV": "Fortuner CCV (Reguler) - Item PR",
@@ -182,7 +182,7 @@ let charts = [];
 
 
 async function loadDataFromSupabase() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("PR LIST") // ⬅️ GANTI sesuai nama tabelmu
     .select("*");
 
@@ -656,4 +656,5 @@ loadDataFromSupabase();
 
 </body>
 </html>
+
 
