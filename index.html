@@ -191,6 +191,32 @@ async function loadDataFromSupabase() {
     return;
   }
 
+  if (error) {
+  console.error("Supabase error:", error);
+  return;
+}
+
+console.log("Total data dari Supabase:", data.length);
+console.log("Sample data pertama:", data[0]);
+
+rows = data
+  .map(r => {
+    const o = {};
+    Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
+    return o;
+  })
+  .filter(r =>
+    r["USER"] === ACTIVE_USER &&
+    !EXCLUDED_STATUS.has(r["STATUS PR"])
+  );
+
+console.log("Data setelah filter:", rows.length);
+console.log("Sample filtered data:", rows[0]);
+
+// Tambahkan ini untuk cek ada USER apa saja
+const uniqueUsers = [...new Set(data.map(r => r.USER || r["PROCESS USER"]))];
+console.log("Unique users di database:", uniqueUsers);
+  
   rows = data
     .map(r => {
       const o = {};
@@ -656,5 +682,6 @@ loadDataFromSupabase();
 
 </body>
 </html>
+
 
 
