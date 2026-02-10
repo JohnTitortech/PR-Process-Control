@@ -196,8 +196,24 @@ async function loadDataFromSupabase() {
   return;
 }
 
-console.log("Total data dari Supabase:", data.length);
-console.log("Sample data pertama:", data[0]);
+// ✅ DEBUGGING - TAMPILKAN DI HALAMAN
+const debugDiv = document.createElement("div");
+debugDiv.style.cssText = "background: #fffacd; padding: 15px; margin: 10px 0; border: 2px solid #ff0000; font-size: 12px; white-space: pre-wrap;";
+
+let debugText = `📊 DEBUGGING INFO:\n\n`;
+debugText += `Total data dari Supabase: ${data.length}\n\n`;
+
+if (data.length > 0) {
+  debugText += `Sample data pertama:\n${JSON.stringify(data[0], null, 2)}\n\n`;
+  
+  // Cek kolom USER
+  const uniqueUsers = [...new Set(data.map(r => r.USER || r["PROCESS USER"] || "NULL"))];
+  debugText += `Unique USER di database:\n${uniqueUsers.join(", ")}\n\n`;
+  
+  // Cek kolom STATUS PR
+  const uniqueStatus = [...new Set(data.map(r => r["STATUS PR"] || "NULL"))];
+  debugText += `Unique STATUS PR:\n${uniqueStatus.join(", ")}\n\n`;
+}
 
 rows = data
   .map(r => {
@@ -210,13 +226,18 @@ rows = data
     !EXCLUDED_STATUS.has(r["STATUS PR"])
   );
 
-console.log("Data setelah filter:", rows.length);
-console.log("Sample filtered data:", rows[0]);
+debugText += `Data setelah filter (USER="${ACTIVE_USER}"): ${rows.length}\n\n`;
 
-// Tambahkan ini untuk cek ada USER apa saja
-const uniqueUsers = [...new Set(data.map(r => r.USER || r["PROCESS USER"]))];
-console.log("Unique users di database:", uniqueUsers);
-  
+if (rows.length > 0) {
+  debugText += `Sample filtered data:\n${JSON.stringify(rows[0], null, 2)}`;
+} else {
+  debugText += `⚠️ TIDAK ADA DATA YANG LOLOS FILTER!\nCek apakah ada USER="${ACTIVE_USER}" di database.`;
+}
+
+debugDiv.textContent = debugText;
+document.body.insertBefore(debugDiv, document.body.firstChild);
+// ✅ AKHIR DEBUGGING
+
   rows = data
     .map(r => {
       const o = {};
@@ -682,6 +703,4 @@ loadDataFromSupabase();
 
 </body>
 </html>
-
-
 
