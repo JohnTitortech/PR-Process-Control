@@ -686,19 +686,85 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
       throw new Error('File CSV kosong atau format tidak valid');
     }
 
-    status.textContent = `📊 ${data.length} baris terbaca. Menghapus data lama...`;
+    status.textContent = `📊 ${data.length} baris terbaca. Menghapus SEMUA data lama...`;
     
-    // Hapus semua data lama di tabel
-    const { error: deleteError } = await supabaseClient
-      .from('PR LIST')
-      .delete()
-      .neq('PR NO', '___DUMMY___'); // trik untuk delete all
-
-    if (deleteError && deleteError.code !== 'PGRST116') {
-      console.warn('Delete warning:', deleteError);
+    console.log('Sample data:', data[0]);
+    console.log('Kolom CSV:', Object.keys(data[0]));
+    
+    // HAPUS SEMUA DATA
+    try {
+      let deleteSuccess = false;
+      
+      // METHOD 1: Coba pakai RPC truncate function (jika sudah dibuat)
+      try {
+        const { error: rpcError } = await supabaseClient
+          .rpc('truncate_pr_list');
+        
+        if (!rpcError) {
+          console.log('✅ Truncate via RPC success');
+          deleteSuccess = true;
+        } else {
+          console.log('RPC truncate not available:', rpcError.message);
+        }
+      } catch (rpcErr) {
+        console.log('RPC method not available');
+      }
+      
+      // METHOD 2: Delete dengan kondisi yang match semua
+      if (!deleteSuccess) {
+        const { error: deleteError1 } = await supabaseClient
+          .from('PR LIST')
+          .delete()
+          .gte('PR NO', 0);
+        
+        if (!deleteError1) {
+          console.log('✅ Delete method 1 success (gte 0)');
+          deleteSuccess = true;
+        }
+      }
+      
+      // METHOD 3: Delete dengan not null
+      if (!deleteSuccess) {
+        const { error: deleteError2 } = await supabaseClient
+          .from('PR LIST')
+          .delete()
+          .not('PR NO', 'is', null);
+        
+        if (!deleteError2) {
+          console.log('✅ Delete method 2 success (not null)');
+          deleteSuccess = true;
+        }
+      }
+      
+      // METHOD 4: Fetch semua dan delete batch
+      if (!deleteSuccess) {
+        console.log('Trying fetch and delete method...');
+        const { data: allRows, error: fetchError } = await supabaseClient
+          .from('PR LIST')
+          .select('PR NO');
+        
+        if (!fetchError && allRows && allRows.length > 0) {
+          const batchSize = 500;
+          for (let i = 0; i < allRows.length; i += batchSize) {
+            const batch = allRows.slice(i, i + batchSize);
+            const prNums = batch.map(r => r['PR NO']);
+            
+            await supabaseClient
+              .from('PR LIST')
+              .delete()
+              .in('PR NO', prNums);
+            
+            status.textContent = `🗑️ Menghapus: ${Math.min(i + batchSize, allRows.length)}/${allRows.length}...`;
+          }
+          console.log(`✅ Deleted ${allRows.length} rows via fetch method`);
+        }
+      }
+      
+      status.textContent = `✅ Data lama terhapus. Uploading ${data.length} baris baru...`;
+      
+    } catch (err) {
+      throw new Error('Gagal menghapus data lama: ' + err.message);
     }
-
-    status.textContent = `📤 Mengupload ${data.length} baris baru...`;
 
     // Insert data baru (batch 1000 rows at a time)
     const batchSize = 1000;
@@ -731,14 +797,20 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 
-// Fungsi Parse CSV
+// Fungsi Parse CSV (mendukung comma dan semicolon)
 function parseCSV(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
     reader.onload = (e) => {
       try {
-        const text = e.target.result;
+        let text = e.target.result;
+        
+        // ✅ Hapus BOM (Byte Order Mark) jika ada
+        if (text.charCodeAt(0) === 0xFEFF) {
+          text = text.substring(1);
+        }
+        
         const lines = text.split('\n').filter(line => line.trim());
         
         if (lines.length < 2) {
@@ -746,18 +818,24 @@ function parseCSV(file) {
           return;
         }
 
+        // Deteksi delimiter (comma atau semicolon)
+        const delimiter = lines[0].includes(';') ? ';' : ',';
+        console.log(`Delimiter detected: "${delimiter}"`);
+
         // Parse header
-        const headers = lines[0].split(',').map(h => 
+        const headers = lines[0].split(delimiter).map(h => 
           h.trim().replace(/^"|"$/g, '') // hapus quotes
         );
+
+        console.log('CSV Headers:', headers);
 
         // Parse data rows
         const data = [];
         for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i]);
+          const values = parseCSVLine(lines[i], delimiter);
           
           if (values.length !== headers.length) {
-            console.warn(`Baris ${i + 1} skip: jumlah kolom tidak sesuai`);
+            console.warn(`Baris ${i + 1} skip: ${values.length} kolom, expected ${headers.length}`);
             continue;
           }
 
@@ -781,8 +859,8 @@ function parseCSV(file) {
   });
 }
 
-// Parse CSV line dengan handling quotes
-function parseCSVLine(line) {
+// Parse CSV line dengan handling quotes dan custom delimiter
+function parseCSVLine(line, delimiter = ',') {
   const result = [];
   let current = '';
   let inQuotes = false;
@@ -792,7 +870,7 @@ function parseCSVLine(line) {
     
     if (char === '"') {
       inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === delimiter && !inQuotes) {
       result.push(current.trim());
       current = '';
     } else {
