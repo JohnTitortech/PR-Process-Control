@@ -2,25 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Control Process PR</title>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
       background: #fafafa;
+      margin: 0;
+    }
+
+    /* === LOGIN PAGE STYLES === */
+    #loginPage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 15px;
+    }
+
+    .login-container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-container h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .login-btn:hover {
+      background: #5568d3;
+    }
+
+    .error-message {
+      color: #e74c3c;
+      text-align: center;
+      margin-top: 15px;
+      display: none;
+    }
+
+    /* === DASHBOARD STYLES === */
+    #dashboardPage {
+      display: none;
+    }
+
+    .header-bar {
+      background: white;
+      padding: 15px 20px;
+      margin: -20px -20px 20px -20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .user-badge {
+      background: #667eea;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .logout-btn {
+      padding: 8px 20px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .logout-btn:hover {
+      background: #c0392b;
     }
 
     h1 {
       margin-bottom: 16px;
+      font-size: clamp(20px, 4vw, 28px);
     }
 
     .container {
@@ -34,6 +164,7 @@
       display: flex;
       gap: 24px;
       align-items: stretch;
+      flex-wrap: wrap;
     }
 
     .card {
@@ -43,24 +174,26 @@
       padding: 16px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       flex: 1;
+      min-width: 280px;
     }
 
     .card h2 {
-      font-size: 14px;
+      font-size: clamp(12px, 2vw, 14px);
       text-align: center;
       margin-bottom: 10px;
     }
 
     canvas {
       max-height: 260px;
+      width: 100% !important;
+      height: auto !important;
     }
-
 
     /* === PIE HTML LEGEND === */
     .pie-legend {
       display: grid;
-      grid-auto-flow: column;     /* ini kuncinya */
-      grid-template-rows: repeat(8, auto); /* 8 ke bawah */
+      grid-auto-flow: column;
+      grid-template-rows: repeat(8, auto);
       gap: 6px 16px;
       font-size: 12px;
       margin-top: 10px;
@@ -79,47 +212,534 @@
       flex-shrink: 0;
     }
 
+    .control-buttons {
+      text-align: center;
+      margin: 20px 0;
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+    }
 
+    .btn {
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      margin: 5px;
+      font-weight: 600;
+      transition: opacity 0.3s;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn-upload {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-refresh {
+      background: #2196F3;
+      color: white;
+    }
+
+    /* Detail Table Responsive */
+    #detailTable table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    #detailTable th,
+    #detailTable td {
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+
+    #detailTable th {
+      background-color: #667eea;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    /* === RESPONSIVE BREAKPOINTS === */
+
+    /* Mobile Phones (Portrait) - 320px to 480px */
+    @media screen and (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      .login-container {
+        padding: 25px 20px;
+      }
+
+      .login-container h1 {
+        font-size: 20px;
+      }
+
+      .header-bar {
+        margin: -10px -10px 15px -10px;
+        padding: 12px 15px;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .user-info {
+        justify-content: center;
+        width: 100%;
+      }
+
+      .logout-btn {
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 18px;
+        text-align: center;
+      }
+
+      .row {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .card {
+        min-width: 100%;
+        padding: 12px;
+      }
+
+      .pie-legend {
+        grid-auto-flow: row;
+        grid-template-rows: auto;
+        grid-template-columns: 1fr;
+        font-size: 11px;
+      }
+
+      .control-buttons {
+        padding: 12px;
+      }
+
+      .btn {
+        width: 100%;
+        margin: 5px 0;
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+
+      canvas {
+        max-height: 200px;
+      }
+
+      #detailTable table {
+        font-size: 10px;
+      }
+
+      #detailTable th,
+      #detailTable td {
+        padding: 4px;
+      }
+    }
+
+    /* Mobile Phones (Landscape) & Small Tablets - 481px to 768px */
+    @media screen and (min-width: 481px) and (max-width: 768px) {
+      .header-bar {
+        flex-direction: row;
+      }
+
+      .row {
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .card {
+        min-width: 100%;
+      }
+
+      .pie-legend {
+        grid-template-rows: repeat(4, auto);
+        grid-auto-flow: column;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        font-size: 15px;
+      }
+
+      canvas {
+        max-height: 240px;
+      }
+    }
+
+    /* Tablets (Portrait) - 769px to 1024px */
+    @media screen and (min-width: 769px) and (max-width: 1024px) {
+      .row {
+        flex-direction: row;
+        gap: 20px;
+      }
+
+      .card {
+        min-width: calc(50% - 12px);
+        flex: 1;
+      }
+
+      .pie-legend {
+        grid-template-rows: repeat(6, auto);
+        grid-auto-flow: column;
+      }
+
+      canvas {
+        max-height: 250px;
+      }
+    }
+
+    /* Laptops & Desktops - 1025px to 1440px */
+    @media screen and (min-width: 1025px) and (max-width: 1440px) {
+      .row {
+        flex-direction: row;
+        gap: 24px;
+      }
+
+      .card {
+        min-width: calc(50% - 12px);
+        flex: 1;
+      }
+
+      .pie-legend {
+        grid-template-rows: repeat(8, auto);
+        grid-auto-flow: column;
+      }
+
+      canvas {
+        max-height: 260px;
+      }
+    }
+
+    /* Large Screens & TVs - 1441px and above */
+    @media screen and (min-width: 1441px) {
+      body {
+        padding: 30px;
+        max-width: 1920px;
+        margin: 0 auto;
+      }
+
+      .header-bar {
+        padding: 20px 30px;
+        margin: -30px -30px 30px -30px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      .row {
+        gap: 30px;
+      }
+
+      .card {
+        padding: 24px;
+        min-width: calc(50% - 15px);
+      }
+
+      .card h2 {
+        font-size: 16px;
+      }
+
+      canvas {
+        max-height: 320px;
+      }
+
+      .pie-legend {
+        font-size: 14px;
+        gap: 8px 20px;
+      }
+
+      .pie-legend-color {
+        width: 12px;
+        height: 12px;
+      }
+
+      .control-buttons {
+        padding: 20px;
+      }
+
+      .btn {
+        padding: 14px 28px;
+        font-size: 18px;
+      }
+
+      #detailTable table {
+        font-size: 14px;
+      }
+
+      #detailTable th,
+      #detailTable td {
+        padding: 10px;
+      }
+    }
+
+    /* Ultra-wide screens - 2K and 4K */
+    @media screen and (min-width: 2000px) {
+      body {
+        max-width: 2400px;
+      }
+
+      h1 {
+        font-size: 36px;
+      }
+
+      .card h2 {
+        font-size: 18px;
+      }
+
+      canvas {
+        max-height: 400px;
+      }
+
+      .pie-legend {
+        font-size: 16px;
+      }
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .header-bar,
+      .control-buttons,
+      .logout-btn {
+        display: none !important;
+      }
+
+      .card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #333;
+      }
+
+      .row {
+        break-inside: avoid;
+      }
+    }
   </style>
 </head>
 <body>
 
-<h1 style="text-align: center;">Dashboard Control Process PR</h1>
+<!-- ========================================
+     LOGIN PAGE
+======================================== -->
+<div id="loginPage">
+  <div class="login-container">
+    <h1>🔐 Login Dashboard PR</h1>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="usernameInput" placeholder="Masukkan username" required />
+      </div>
 
-<!-- ✅ TOMBOL UPLOAD & REFRESH -->
-<div style="text-align: center; margin: 20px 0; background: #f0f0f0; padding: 15px; border-radius: 8px;">
-  <input type="file" id="fileInput" accept=".csv" style="display:none;">
-  <button onclick="document.getElementById('fileInput').click()" 
-          style="padding: 12px 24px; font-size: 16px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 5px; margin-right: 10px;">
-    📁 Upload CSV untuk Update Data
-  </button>
-  <button onclick="location.reload()" 
-          style="padding: 12px 24px; font-size: 16px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 5px;">
-    🔄 Refresh Dashboard
-  </button>
-  <div id="uploadStatus" style="margin-top: 10px; font-weight: bold;"></div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="passwordInput" placeholder="Masukkan password" required />
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="rememberMe" style="width: auto; cursor: pointer;">
+        <label for="rememberMe" style="margin: 0; cursor: pointer; font-weight: normal;">Remember Me</label>
+      </div>
+
+      <button type="submit" class="login-btn">LOGIN</button>
+      
+      <div class="error-message" id="errorMessage">Username atau password salah!</div>
+    </form>
+
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px; color: #666;">
+      <strong>Demo Credentials:</strong><br>
+      MASTER: username = <code>admin</code>, password = <code>master123</code><br>
+      USER: username = <code>user</code>, password = <code>user123</code>
+    </div>
+  </div>
 </div>
 
-<div id="periodInfo" style="margin-bottom:12px;font-weight:bold;"></div>
+<!-- ========================================
+     DASHBOARD PAGE
+======================================== -->
+<div id="dashboardPage">
+  <!-- Header Bar -->
+  <div class="header-bar">
+    <div class="user-info">
+      <span class="user-badge" id="userBadge"></span>
+      <span id="usernameDisplay"></span>
+    </div>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+  </div>
 
-<div class="container" id="chartContainer"></div>
+  <h1 style="text-align: center;">Dashboard Control Process PR</h1>
+
+  <!-- Control Buttons (conditional) -->
+  <div class="control-buttons" id="controlButtons">
+    <input type="file" id="fileInput" accept=".csv" style="display:none;">
+    <button id="uploadBtn" class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
+      📁 Upload CSV untuk Update Data
+    </button>
+    <button class="btn btn-refresh" onclick="location.reload()">
+      🔄 Refresh Dashboard
+    </button>
+    <div id="uploadStatus" style="margin-top: 10px; font-weight: bold;"></div>
+  </div>
+
+  <div id="periodInfo" style="margin-bottom:12px;font-weight:bold;text-align:center;"></div>
+  <div id="lastUpdated" style="margin-bottom:12px;color:#666;font-size:14px;text-align:center;"></div>
+
+  <div class="container" id="chartContainer"></div>
+</div>
 
 <script>
 /* =========================
-   CONFIG
+   LOGIN CREDENTIALS
 ========================= */
+const CREDENTIALS = {
+  MASTER: {
+    username: 'admin',
+    password: 'master123'
+  },
+  USER: {
+    username: 'user',
+    password: 'user123'
+  }
+};
 
+let currentUser = null;
 
+/* =========================
+   LOGIN HANDLER
+========================= */
+document.getElementById('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  
+  const username = document.getElementById('usernameInput').value;
+  const password = document.getElementById('passwordInput').value;
+  const rememberMe = document.getElementById('rememberMe').checked;
+  const errorMsg = document.getElementById('errorMessage');
+  
+  // Auto-detect role based on credentials
+  let detectedRole = null;
+  
+  for (const [role, cred] of Object.entries(CREDENTIALS)) {
+    if (cred.username === username && cred.password === password) {
+      detectedRole = role;
+      break;
+    }
+  }
+  
+  if (detectedRole) {
+    // Login berhasil
+    currentUser = {
+      role: detectedRole,
+      username: username
+    };
+    
+    // Simpan session based on Remember Me
+    if (rememberMe) {
+      // Permanent storage (tetap walaupun browser ditutup)
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      localStorage.setItem('rememberMe', 'true');
+    } else {
+      // Temporary storage (hilang saat browser ditutup)
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      // Hapus localStorage jika ada
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('rememberMe');
+    }
+    
+    // Tampilkan dashboard
+    showDashboard();
+    
+  } else {
+    // Login gagal
+    errorMsg.style.display = 'block';
+    setTimeout(() => {
+      errorMsg.style.display = 'none';
+    }, 3000);
+  }
+});
+
+/* =========================
+   SHOW DASHBOARD
+========================= */
+function showDashboard() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('dashboardPage').style.display = 'block';
+  
+  // Update user info
+  document.getElementById('userBadge').textContent = currentUser.role;
+  document.getElementById('usernameDisplay').textContent = `Hello, ${currentUser.username}`;
+  
+  // Conditional UI based on role
+  if (currentUser.role === 'USER') {
+    // Hide upload button for USER
+    document.getElementById('uploadBtn').style.display = 'none';
+    document.getElementById('fileInput').style.display = 'none';
+  }
+  
+  // Load dashboard data
+  loadDataFromSupabase();
+}
+
+/* =========================
+   LOGOUT
+========================= */
+function logout() {
+  if (confirm('Yakin ingin logout?')) {
+    // Hapus semua storage
+    sessionStorage.removeItem('currentUser');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('rememberMe');
+    currentUser = null;
+    location.reload();
+  }
+}
+
+/* =========================
+   CHECK SESSION ON LOAD
+========================= */
+window.addEventListener('DOMContentLoaded', () => {
+  // Cek localStorage dulu (Remember Me)
+  let savedUser = localStorage.getItem('currentUser');
+  const rememberMe = localStorage.getItem('rememberMe') === 'true';
+  
+  // Jika tidak ada di localStorage, cek sessionStorage
+  if (!savedUser) {
+    savedUser = sessionStorage.getItem('currentUser');
+  }
+  
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    showDashboard();
+    
+    // Set checkbox Remember Me jika aktif
+    if (rememberMe) {
+      document.getElementById('rememberMe').checked = true;
+    }
+  }
+});
+
+/* =========================
+   CONFIG SUPABASE
+========================= */
 const SUPABASE_URL = "https://epawoaoslnwlyrcwkfvb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_e8ZNaYuT78gqBIiunJZm7g_HWPMNFQG";
 
-// ✅ PERBAIKAN INISIALISASI SUPABASE
 const { createClient } = supabase;
-const supabaseClient = createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const PROJECT_MAP = {
   "230-24-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-FORTUNER CCV": "Fortuner CCV (Reguler) - Item PR",
@@ -136,20 +756,17 @@ const STATUS_PR = [
   "RECEIVE PURCHASING",
   "INPUT PRICE",
   "APPROVE MANAGER",
-  // "APPROVE GM",
-  // "APPROVE FGM",
   "APPROVE CL COST CONTROL",
   "APPROVE MANAGER COST CONTROL",
   "PRICE EVALUATION OK",
   "APPROVE CL PURCHASING",
   "APPROVE MANAGER PURCHASING",
   "APPROVE GM PURCHASING",
-  // "APPROVE FGM PURCHASING",
   "PO PUBLISH",
   "PO RECEIVE SUPPLIER",
   "CREATE PACKING SLIP",
   "RECEIVED"
-]
+];
 
 const EXCLUDED_STATUS = new Set([
   "NOT APPROVE CL",
@@ -167,40 +784,32 @@ const EXCLUDED_STATUS = new Set([
   "DELETE PR"
 ]);
 
-const BAR_EXCLUDED_STATUS = new Set([
-  "RECEIVED"
-]);
-
+const BAR_EXCLUDED_STATUS = new Set(["RECEIVED"]);
 
 const DETAIL_COLUMNS = [
-  "NO",
-  "PR NO",
-  "PR DATE",
-  "SECTION",
-  "USER",
-  "STATUS",
-  "DATE REQUIRED",
-  "ITEM NAME",
-  "UM",
-  "QTY",
-  "CURR",
-  "PRICE",
-  "AMOUNT",
+  "PR NO", 
+  "PR DATE", 
+  "USER", 
+  "ITEM NAME", 
+  "UM", 
+  "QTY", 
   "STATUS PR",
-  "PROCESS DATE",
-  "PROCESS USER",
-  "BIIL APPROVAL",
-  "DETAIL",
+  "PROCESS DATE", 
+  "PROCESS USER", 
+  "BIIL APPROVAL", 
+  "DETAIL", 
   "REMARK"
 ];
 
 let rows = [];
 let charts = [];
 
-
+/* =========================
+   LOAD DATA FROM SUPABASE
+========================= */
 async function loadDataFromSupabase() {
-  const { data, error } = await supabaseClient  // ✅ GANTI dari supabase ke supabaseClient
-    .from("PR LIST") // ⬅️ GANTI sesuai nama tabelmu
+  const { data, error } = await supabaseClient
+    .from("PR LIST")
     .select("*");
 
   if (error) {
@@ -220,17 +829,79 @@ async function loadDataFromSupabase() {
     );
 
   const periodText = getPRDatePeriod(rows);
-  document.getElementById("periodInfo").textContent =
-    periodText ? periodText : "";
+  document.getElementById("periodInfo").textContent = periodText ? periodText : "";
+  
+  // Display last updated timestamp from Supabase
+  await displayLastUpdatedFromSupabase();
 
   Chart.register(ChartDataLabels);
   renderCharts();
 }
 
-
 /* =========================
-   UTIL
+   UTILITY FUNCTIONS
 ========================= */
+function formatLastUpdated(timestamp) {
+  if (!timestamp) return '';
+  
+  const date = new Date(timestamp);
+  const options = {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta'
+  };
+  
+  const formatter = new Intl.DateTimeFormat('en-GB', options);
+  const parts = formatter.formatToParts(date);
+  
+  const time = parts.filter(p => p.type === 'hour' || p.type === 'minute' || p.type === 'literal' && p.value === ':')
+    .map(p => p.value).join('');
+  const day = parts.find(p => p.type === 'day').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const year = parts.find(p => p.type === 'year').value;
+  
+  return `Last updated: ${time} · ${day} ${month} ${year}`;
+}
+
+function displayLastUpdated() {
+  const lastUpdated = localStorage.getItem('lastUpdated');
+  const element = document.getElementById('lastUpdated');
+  
+  if (lastUpdated && element) {
+    element.textContent = formatLastUpdated(lastUpdated);
+  }
+}
+
+async function displayLastUpdatedFromSupabase() {
+  const element = document.getElementById('lastUpdated');
+  if (!element) return;
+  
+  try {
+    const { data, error } = await supabaseClient
+      .from('SYSTEM_INFO')
+      .select('value')
+      .eq('key', 'last_updated')
+      .single();
+    
+    if (error) {
+      console.log('No last_updated info in Supabase:', error.message);
+      // Fallback to localStorage
+      displayLastUpdated();
+      return;
+    }
+    
+    if (data && data.value) {
+      element.textContent = formatLastUpdated(data.value);
+    }
+  } catch (err) {
+    console.log('Error fetching last_updated:', err);
+    // Fallback to localStorage
+    displayLastUpdated();
+  }
+}
 
 function parsePRDate(value) {
   if (!value) return null;
@@ -260,9 +931,7 @@ function getPRDatePeriod(rows) {
 }
 
 function getOrderedBarStatus(allStatusFromData) {
-  return STATUS_PR
-    //.filter(s => !BAR_EXCLUDED_STATUS.has(s))
-    .filter(s => allStatusFromData.includes(s));
+  return STATUS_PR.filter(s => allStatusFromData.includes(s));
 }
 
 function normalizeKey(key) {
@@ -276,7 +945,7 @@ function detectProject(bill) {
 }
 
 function getOrderedStatus(allStatusFromData) {
-  const master = STATUS_PR.slice(); // urutan resmi
+  const master = STATUS_PR.slice();
   const extras = allStatusFromData.filter(s => !master.includes(s));
   return [...master, ...extras];
 }
@@ -289,12 +958,11 @@ function parseProcessDate(value) {
 }
 
 function getDelayColor(delay) {
-  if (delay === 1) return "#2ecc71";   // hijau
-  if (delay === 2) return "#f1c40f";   // kuning
-  if (delay === 3) return "#e67e22";   // orange
-  return "#e74c3c";                    // merah (>=4)
+  if (delay === 1) return "#2ecc71";
+  if (delay === 2) return "#f1c40f";
+  if (delay === 3) return "#e67e22";
+  return "#e74c3c";
 }
-
 
 function closeAllDetails() {
   Object.keys(PROJECT_MAP).forEach(k => {
@@ -303,13 +971,11 @@ function closeAllDetails() {
   });
 }
 
-
-
 /* =========================
-   PIE CHART (PER PR) – TIDAK DIUBAH
+   PIE CHART
 ========================= */
 function buildPieData(projectKey) {
-  const map = {}; // STATUS → Set(PR)
+  const map = {};
 
   rows.forEach(r => {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
@@ -330,20 +996,18 @@ function buildPieData(projectKey) {
 }
 
 /* =========================
-   BAR CHART (PER PR – FIXED)
+   BAR CHART
 ========================= */
 function buildDelayData(projectKey) {
   const today = new Date();
   today.setHours(0,0,0,0);
 
   const statusMap = {};
-  // STATUS → delay → [PR]
 
   rows.forEach(r => {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
     if (!r["PR NO"] || !r["STATUS PR"]) return;
 
-    // ⛔ STOP RECEIVED DI BAR CHART
     if (r["STATUS PR"] === "RECEIVED") return;
 
     const d = parseProcessDate(r["PROCESS DATE"]);
@@ -352,7 +1016,6 @@ function buildDelayData(projectKey) {
     let diff = Math.floor((today - d) / 86400000);
     if (diff <= 0) return;
 
-    // 🔒 kunci maksimum days 14 hari
     if (diff > 14) diff = 14;
 
     const status = r["STATUS PR"];
@@ -365,14 +1028,13 @@ function buildDelayData(projectKey) {
   });
 
   const labels = getOrderedBarStatus(Object.keys(statusMap));
-
   const datasets = [];
 
   labels.forEach(status => {
-    if (!statusMap[status]) return; // status master tapi kosong
+    if (!statusMap[status]) return;
     const delays = Object.keys(statusMap[status])
-    .map(Number)
-    .sort((a,b) => a-b);
+      .map(Number)
+      .sort((a,b) => a-b);
 
     let prev = 0;
 
@@ -396,11 +1058,25 @@ function buildDelayData(projectKey) {
 
 function showDetailTable(projectKey, status, prList, delay = null) {
   closeAllDetails();
+  
+  console.log('showDetailTable called with:', {
+    projectKey,
+    status,
+    prList,
+    delay
+  });
+  
   const filtered = rows.filter(r => {
+    // Filter by project
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return false;
+    
+    // Filter by status
     if (r["STATUS PR"] !== status) return false;
+    
+    // Filter by PR list
     if (!prList.includes(r["PR NO"])) return false;
 
+    // Jika dari bar chart (delay ada), filter juga by delay
     if (delay !== null) {
       const d = parseProcessDate(r["PROCESS DATE"]);
       if (!d) return false;
@@ -409,11 +1085,18 @@ function showDetailTable(projectKey, status, prList, delay = null) {
       today.setHours(0,0,0,0);
 
       const diff = Math.floor((today - d) / 86400000);
-      if (diff !== delay) return false;
+      
+      // Kunci maksimum delay 14 hari (sama seperti di buildDelayData)
+      let actualDiff = diff;
+      if (actualDiff > 14) actualDiff = 14;
+      
+      if (actualDiff !== delay) return false;
     }
 
     return true;
   });
+  
+  console.log('Filtered results:', filtered.length, 'rows');
 
   renderDetailTable(filtered, projectKey, status);
 }
@@ -422,7 +1105,6 @@ function renderDetailTable(data, projectKey, status) {
   const slot = document.getElementById(`detail-${projectKey}`);
   slot.innerHTML = "";
   slot.style.display = "block";
-
 
   let html = `
     <div class="card" id="detailTable">
@@ -459,12 +1141,12 @@ function renderDetailTable(data, projectKey, status) {
   `;
 
   slot.appendChild(
-  document.createRange().createContextualFragment(html)
-);
+    document.createRange().createContextualFragment(html)
+  );
 }
 
 /* =========================
-   RENDER
+   RENDER CHARTS
 ========================= */
 function clearCharts() {
   charts.forEach(c => c.destroy());
@@ -502,8 +1184,6 @@ function renderCharts() {
     legendDiv.className = "pie-legend";
     pieCard.appendChild(legendDiv);
 
-
-
     barCard.appendChild(barTitle);
     barCard.appendChild(barCanvas);
 
@@ -511,7 +1191,6 @@ function renderCharts() {
     row.appendChild(barCard);
     container.appendChild(row);
 
-    // 🔽 TAMBAHKAN SLOT DETAIL KHUSUS PROJECT
     const detailSlot = document.createElement("div");
     detailSlot.id = `detail-${key}`;
     detailSlot.style.display = "none";
@@ -521,7 +1200,6 @@ function renderCharts() {
     const bar = buildDelayData(key);
 
     if (pie.data.length) {
-
       const colors = pie.labels.map((_, i) =>
         `hsl(${(i * 360) / pie.labels.length}, 65%, 55%)`
       );
@@ -538,21 +1216,15 @@ function renderCharts() {
           }]
         },
         options: {
+          responsive: true,
+          maintainAspectRatio: true,
           plugins: {
             legend: { display: false },
-
             datalabels: {
               color: "#fff",
-              font: {
-                weight: "bold",
-                size: 12
-              },
-              formatter: (value, ctx) => {
-                if (value === 0) return "";
-                return value;
-              }
+              font: { weight: "bold", size: 12 },
+              formatter: (value, ctx) => value === 0 ? "" : value
             },
-
             tooltip: {
               callbacks: {
                 label: ctx => {
@@ -565,7 +1237,6 @@ function renderCharts() {
               }
             }
           },
-
           onClick: (evt, elements) => {
             if (!elements.length) return;
             const idx = elements[0].index;
@@ -577,7 +1248,6 @@ function renderCharts() {
       });
 
       charts.push(pieChart);
-
 
       pie.labels.forEach((label, i) => {
         const item = document.createElement("div");
@@ -594,13 +1264,10 @@ function renderCharts() {
           text.textContent = `${label} (${pie.data[i]})`;
         }
 
-
         item.appendChild(colorBox);
         item.appendChild(text);
         legendDiv.appendChild(item);
       });
-
-
     }
 
     if (bar.datasets.length) {
@@ -611,18 +1278,24 @@ function renderCharts() {
           datasets: bar.datasets
         },
         options: {
+          responsive: true,
+          maintainAspectRatio: true,
           indexAxis: "y",
           onClick: (evt, elements) => {
             if (!elements.length) return;
+            
             const el = elements[0];
             const dataset = bar.datasets[el.datasetIndex];
             const status = bar.labels[el.index];
-            showDetailTable(
-              key,                // project
-              status,             // status PR
-              dataset.prList,     // PR list
-              dataset.delayValue  // delay (opsional, buat info)
-            );
+            
+            console.log('Bar clicked:', {
+              status,
+              delayValue: dataset.delayValue,
+              prList: dataset.prList,
+              prListLength: dataset.prList ? dataset.prList.length : 0
+            });
+            
+            showDetailTable(key, status, dataset.prList, dataset.delayValue);
           },
           scales: {
             x: {
@@ -630,24 +1303,14 @@ function renderCharts() {
               beginAtZero: true,
               min: 0,
               max: 14,
-              ticks: {
-                stepSize: 1
-              },
-              title: {
-                display: true,
-                text: "(Days)"
-              }
+              ticks: { stepSize: 1 },
+              title: { display: true, text: "(Days)" }
             },
-            y: {
-              stacked: true
-            }
+            y: { stacked: true }
           },
           plugins: {
             legend: { display: false },
-
-            datalabels: {
-              display:false
-            },
+            datalabels: { display: false },
             tooltip: {
               callbacks: {
                 label: ctx => {
@@ -667,9 +1330,9 @@ function renderCharts() {
   });
 }
 
-// ========================================
-// ✅ UPLOAD CSV HANDLER - TARUH DI SINI
-// ========================================
+/* =========================
+   CSV UPLOAD HANDLER
+========================= */
 document.getElementById('fileInput').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -679,7 +1342,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
   status.style.color = 'orange';
 
   try {
-    // Parse CSV
     const data = await parseCSV(file);
     
     if (data.length === 0) {
@@ -691,14 +1353,11 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
     console.log('Sample data:', data[0]);
     console.log('Kolom CSV:', Object.keys(data[0]));
     
-    // HAPUS SEMUA DATA
     try {
       let deleteSuccess = false;
       
-      // METHOD 1: Coba pakai RPC truncate function (jika sudah dibuat)
       try {
-        const { error: rpcError } = await supabaseClient
-          .rpc('truncate_pr_list');
+        const { error: rpcError } = await supabaseClient.rpc('truncate_pr_list');
         
         if (!rpcError) {
           console.log('✅ Truncate via RPC success');
@@ -710,7 +1369,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
         console.log('RPC method not available');
       }
       
-      // METHOD 2: Delete dengan kondisi yang match semua
       if (!deleteSuccess) {
         const { error: deleteError1 } = await supabaseClient
           .from('PR LIST')
@@ -723,7 +1381,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
         }
       }
       
-      // METHOD 3: Delete dengan not null
       if (!deleteSuccess) {
         const { error: deleteError2 } = await supabaseClient
           .from('PR LIST')
@@ -736,7 +1393,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
         }
       }
       
-      // METHOD 4: Fetch semua dan delete batch
       if (!deleteSuccess) {
         console.log('Trying fetch and delete method...');
         const { data: allRows, error: fetchError } = await supabaseClient
@@ -766,7 +1422,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
       throw new Error('Gagal menghapus data lama: ' + err.message);
     }
 
-    // Insert data baru (batch 1000 rows at a time)
     const batchSize = 1000;
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize);
@@ -781,8 +1436,25 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
 
     status.textContent = `✅ BERHASIL! ${data.length} data berhasil diupdate. Merefresh dashboard...`;
     status.style.color = 'green';
+    
+    // Save timestamp to Supabase
+    const timestamp = new Date().toISOString();
+    localStorage.setItem('lastUpdated', timestamp);
+    
+    try {
+      await supabaseClient
+        .from('SYSTEM_INFO')
+        .upsert({ 
+          key: 'last_updated', 
+          value: timestamp 
+        }, { 
+          onConflict: 'key' 
+        });
+      console.log('✅ Timestamp saved to Supabase');
+    } catch (err) {
+      console.log('Failed to save timestamp to Supabase:', err);
+    }
 
-    // Auto reload setelah 2 detik
     setTimeout(() => {
       location.reload();
     }, 2000);
@@ -793,11 +1465,9 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
     console.error('Upload error:', err);
   }
   
-  // Reset file input
   e.target.value = '';
 });
 
-// Fungsi Parse CSV (mendukung comma dan semicolon)
 function parseCSV(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -806,7 +1476,6 @@ function parseCSV(file) {
       try {
         let text = e.target.result;
         
-        // ✅ Hapus BOM (Byte Order Mark) jika ada
         if (text.charCodeAt(0) === 0xFEFF) {
           text = text.substring(1);
         }
@@ -818,18 +1487,15 @@ function parseCSV(file) {
           return;
         }
 
-        // Deteksi delimiter (comma atau semicolon)
         const delimiter = lines[0].includes(';') ? ';' : ',';
         console.log(`Delimiter detected: "${delimiter}"`);
 
-        // Parse header
         const headers = lines[0].split(delimiter).map(h => 
-          h.trim().replace(/^"|"$/g, '') // hapus quotes
+          h.trim().replace(/^"|"$/g, '')
         );
 
         console.log('CSV Headers:', headers);
 
-        // Parse data rows
         const data = [];
         for (let i = 1; i < lines.length; i++) {
           const values = parseCSVLine(lines[i], delimiter);
@@ -841,7 +1507,6 @@ function parseCSV(file) {
 
           const obj = {};
           headers.forEach((header, idx) => {
-            // Konversi string kosong jadi null
             obj[header] = values[idx] === '' ? null : values[idx];
           });
           
@@ -859,7 +1524,6 @@ function parseCSV(file) {
   });
 }
 
-// Parse CSV line dengan handling quotes dan custom delimiter
 function parseCSVLine(line, delimiter = ',') {
   const result = [];
   let current = '';
@@ -879,14 +1543,8 @@ function parseCSVLine(line, delimiter = ',') {
   }
   
   result.push(current.trim());
-  return result.map(v => v.replace(/^"|"$/g, '')); // hapus quotes
+  return result.map(v => v.replace(/^"|"$/g, ''));
 }
-// ========================================
-// ✅ END OF UPLOAD HANDLER
-// ========================================
-
-loadDataFromSupabase();
-
 </script>
 
 </body>
