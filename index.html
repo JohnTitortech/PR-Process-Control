@@ -561,11 +561,11 @@
       <div class="error-message" id="errorMessage">Username atau password salah!</div>
     </form>
 
-    /*<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px; color: #666;">
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px; color: #666;">
       <strong>Demo Credentials:</strong><br>
       MASTER: username = <code>admin</code>, password = <code>master123</code><br>
       USER: username = <code>user</code>, password = <code>user123</code>
-    </div>*/
+    </div>
   </div>
 </div>
 
@@ -746,11 +746,26 @@ const PROJECT_MAP = {
   "070-23-VEHICLE CONVERSION-PROJECT-CONV-AMBULANCE": "Fortuner Ambulance (Project) - Item PR",
   "143-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-AMBULANCE FORTUNER": "Fortuner Ambulance (Reguler) - Item PR",
   "163-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-SIENTA WELCAB": "Sienta Welcab (Reguler) - Item PR",
-  "004-25-VEHICLE, QUALITY & AFTER SALES-EXPENSES-REPAIR & MAINTENANCE-ASSET - PREVENTIVE MAINTENANCE": "Preventive Maintenance - Item PR",
-  "012-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - ROUTINE INSPECTION/SERVICE": "Routine Inspection/Service - Item PR",
-  "014-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - SPAREPART": "Sparepart - Item PR",
-  "015-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - TOOLS & EQUIPMENT": "Tools & Equipment - Item PR",
-  "083-25-VEHICLE CONVERSION-EXPENSES-ADMINISTRATION EXPENSES-GENERAL & ADMINISTRATION": "General & Administration - Item PR"
+  "GRANMAX_PT_TJ":"Granmax PT (TJ) - Off Warranty - Item PR",
+  "075-24-VEHICLE, QUALITY & AFTER SALES-EXPENSES-CONVERSION WARRANTY-GRANMAX PUBLIC TRANSPORT (TJ)": "Granmax PT (TJ) - Warranty - Item PR",
+  "074-24-VEHICLE, QUALITY & AFTER SALES-PROJECT-CONVERSION OFF-WARRANTY-GRANMAX PUBLIC TRANSPORT (SURABAYA)": "Granmax PT (Surabaya) - Off Warranty - Item PR",
+  "075-24-VEHICLE, QUALITY & AFTER SALES-EXPENSES-CONVERSION WARRANTY-GRANMAX PUBLIC TRANSPORT (BANJAR)": "Granmax PT (Banjar) - Warranty - Item PR",
+  "PRE-MAIN_INSP_MAIN-SPARE_TOOLS_ADMIN": "Others - Item PR"
+};
+
+// Mapping untuk multiple keys ke 1 project
+const PROJECT_ALIASES = {
+  "GRANMAX_PT_TJ": [
+    "074-24-VEHICLE, QUALITY & AFTER SALES-PROJECT-CONVERSION OFF-WARRANTY-GRANMAX PUBLIC TRANSPORT (TJ)",
+    "074-24-VEHICLE, QUALITY & AFTER SALES-PROJECT-CONVERSION OFF-GRANMAX PUBLIC TRANSPORT (TJ)"
+  ],
+  "PRE-MAIN_INSP_MAIN-SPARE_TOOLS_ADMIN":[
+    "004-25-VEHICLE, QUALITY & AFTER SALES-EXPENSES-REPAIR & MAINTENANCE-ASSET - PREVENTIVE MAINTENANCE",
+    "012-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - ROUTINE INSPECTION/SERVICE",
+    "014-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - SPAREPART",
+    "015-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - TOOLS & EQUIPMENT",
+    "083-25-VEHICLE CONVERSION-EXPENSES-ADMINISTRATION EXPENSES-GENERAL & ADMINISTRATION"
+  ]
 };
 
 const ACTIVE_USER = "MILA";
@@ -946,6 +961,17 @@ function normalizeKey(key) {
 function detectProject(bill) {
   if (!bill) return null;
   const text = bill.toString().toUpperCase().replace(/\s+/g, " ");
+  
+  // Cek aliases dulu
+  for (const [aliasKey, patterns] of Object.entries(PROJECT_ALIASES)) {
+    for (const pattern of patterns) {
+      if (text.includes(pattern)) {
+        return aliasKey; // Return alias key
+      }
+    }
+  }
+  
+  // Fallback ke direct match
   return Object.keys(PROJECT_MAP).find(k => text.includes(k)) || null;
 }
 
@@ -1554,4 +1580,3 @@ function parseCSVLine(line, delimiter = ',') {
 
 </body>
 </html>
-
