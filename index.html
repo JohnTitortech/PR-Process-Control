@@ -267,6 +267,11 @@
       z-index: 10;
     }
 
+    /* Align number columns to right */
+    .col-number {
+      text-align: right !important;
+    }
+
     /* === RESPONSIVE BREAKPOINTS === */
 
     /* Mobile Phones (Portrait) - 320px to 480px */
@@ -649,22 +654,17 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
     
     // Simpan session based on Remember Me
     if (rememberMe) {
-      // Permanent storage (tetap walaupun browser ditutup)
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
       localStorage.setItem('rememberMe', 'true');
     } else {
-      // Temporary storage (hilang saat browser ditutup)
       sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-      // Hapus localStorage jika ada
       localStorage.removeItem('currentUser');
       localStorage.removeItem('rememberMe');
     }
     
-    // Tampilkan dashboard
     showDashboard();
     
   } else {
-    // Login gagal
     errorMsg.style.display = 'block';
     setTimeout(() => {
       errorMsg.style.display = 'none';
@@ -679,18 +679,14 @@ function showDashboard() {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('dashboardPage').style.display = 'block';
   
-  // Update user info
   document.getElementById('userBadge').textContent = currentUser.role;
   document.getElementById('usernameDisplay').textContent = `Hello, ${currentUser.username}`;
   
-  // Conditional UI based on role
   if (currentUser.role === 'USER') {
-    // Hide upload button for USER
     document.getElementById('uploadBtn').style.display = 'none';
     document.getElementById('fileInput').style.display = 'none';
   }
   
-  // Load dashboard data
   loadDataFromSupabase();
 }
 
@@ -699,7 +695,6 @@ function showDashboard() {
 ========================= */
 function logout() {
   if (confirm('Yakin ingin logout?')) {
-    // Hapus semua storage
     sessionStorage.removeItem('currentUser');
     localStorage.removeItem('currentUser');
     localStorage.removeItem('rememberMe');
@@ -712,11 +707,9 @@ function logout() {
    CHECK SESSION ON LOAD
 ========================= */
 window.addEventListener('DOMContentLoaded', () => {
-  // Cek localStorage dulu (Remember Me)
   let savedUser = localStorage.getItem('currentUser');
   const rememberMe = localStorage.getItem('rememberMe') === 'true';
   
-  // Jika tidak ada di localStorage, cek sessionStorage
   if (!savedUser) {
     savedUser = sessionStorage.getItem('currentUser');
   }
@@ -725,7 +718,6 @@ window.addEventListener('DOMContentLoaded', () => {
     currentUser = JSON.parse(savedUser);
     showDashboard();
     
-    // Set checkbox Remember Me jika aktif
     if (rememberMe) {
       document.getElementById('rememberMe').checked = true;
     }
@@ -753,7 +745,6 @@ const PROJECT_MAP = {
   "PRE-MAIN_INSP_MAIN-SPARE_TOOLS_ADMIN": "Others - Item PR"
 };
 
-// Mapping untuk multiple keys ke 1 project
 const PROJECT_ALIASES = {
   "GRANMAX_PT_TJ": [
     "074-24-VEHICLE, QUALITY & AFTER SALES-PROJECT-CONVERSION OFF-WARRANTY-GRANMAX PUBLIC TRANSPORT (TJ)",
@@ -806,13 +797,16 @@ const EXCLUDED_STATUS = new Set([
 
 const BAR_EXCLUDED_STATUS = new Set(["RECEIVED"]);
 
+// =============================================
+// UPDATED: Added CURR, PRICE, AMOUNT columns
+// =============================================
 const DETAIL_COLUMNS = [
   "PR NO", 
   "PR DATE", 
   "USER", 
   "ITEM NAME", 
   "UM", 
-  "QTY", 
+  "QTY",
   "CURR",
   "PRICE",
   "AMOUNT",
@@ -823,6 +817,9 @@ const DETAIL_COLUMNS = [
   "DETAIL", 
   "REMARK"
 ];
+
+// Columns that should be right-aligned (numeric)
+const NUMBER_COLUMNS = new Set(["QTY", "PRICE", "AMOUNT"]);
 
 let rows = [];
 let charts = [];
@@ -854,7 +851,6 @@ async function loadDataFromSupabase() {
   const periodText = getPRDatePeriod(rows);
   document.getElementById("periodInfo").textContent = periodText ? periodText : "";
   
-  // Display last updated timestamp from Supabase
   await displayLastUpdatedFromSupabase();
 
   Chart.register(ChartDataLabels);
@@ -864,6 +860,13 @@ async function loadDataFromSupabase() {
 /* =========================
    UTILITY FUNCTIONS
 ========================= */
+function formatNumber(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const num = parseFloat(value);
+  if (isNaN(num)) return value;
+  return num.toLocaleString('id-ID');
+}
+
 function formatLastUpdated(timestamp) {
   if (!timestamp) return '';
   
@@ -911,7 +914,6 @@ async function displayLastUpdatedFromSupabase() {
     
     if (error) {
       console.log('No last_updated info in Supabase:', error.message);
-      // Fallback to localStorage
       displayLastUpdated();
       return;
     }
@@ -921,7 +923,6 @@ async function displayLastUpdatedFromSupabase() {
     }
   } catch (err) {
     console.log('Error fetching last_updated:', err);
-    // Fallback to localStorage
     displayLastUpdated();
   }
 }
@@ -965,16 +966,14 @@ function detectProject(bill) {
   if (!bill) return null;
   const text = bill.toString().toUpperCase().replace(/\s+/g, " ");
   
-  // Cek aliases dulu
   for (const [aliasKey, patterns] of Object.entries(PROJECT_ALIASES)) {
     for (const pattern of patterns) {
       if (text.includes(pattern)) {
-        return aliasKey; // Return alias key
+        return aliasKey;
       }
     }
   }
   
-  // Fallback ke direct match
   return Object.keys(PROJECT_MAP).find(k => text.includes(k)) || null;
 }
 
@@ -1093,24 +1092,11 @@ function buildDelayData(projectKey) {
 function showDetailTable(projectKey, status, prList, delay = null) {
   closeAllDetails();
   
-  console.log('showDetailTable called with:', {
-    projectKey,
-    status,
-    prList,
-    delay
-  });
-  
   const filtered = rows.filter(r => {
-    // Filter by project
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return false;
-    
-    // Filter by status
     if (r["STATUS PR"] !== status) return false;
-    
-    // Filter by PR list
     if (!prList.includes(r["PR NO"])) return false;
 
-    // Jika dari bar chart (delay ada), filter juga by delay
     if (delay !== null) {
       const d = parseProcessDate(r["PROCESS DATE"]);
       if (!d) return false;
@@ -1120,7 +1106,6 @@ function showDetailTable(projectKey, status, prList, delay = null) {
 
       const diff = Math.floor((today - d) / 86400000);
       
-      // Kunci maksimum delay 14 hari (sama seperti di buildDelayData)
       let actualDiff = diff;
       if (actualDiff > 14) actualDiff = 14;
       
@@ -1129,8 +1114,6 @@ function showDetailTable(projectKey, status, prList, delay = null) {
 
     return true;
   });
-  
-  console.log('Filtered results:', filtered.length, 'rows');
 
   renderDetailTable(filtered, projectKey, status);
 }
@@ -1140,12 +1123,23 @@ function renderDetailTable(data, projectKey, status) {
   slot.innerHTML = "";
   slot.style.display = "block";
 
+  // Calculate totals for AMOUNT column
+  const totalAmount = data.reduce((sum, r) => {
+    const amt = parseFloat(r["AMOUNT"]);
+    return sum + (isNaN(amt) ? 0 : amt);
+  }, 0);
+
+  // Get unique currencies
+  const currencies = [...new Set(data.map(r => r["CURR"]).filter(Boolean))];
+  const currDisplay = currencies.length > 0 ? currencies.join(', ') : '';
+
   let html = `
     <div class="card" id="detailTable">
       <h2>
         ${PROJECT_MAP[projectKey]}<br>
         Status: ${status}<br>
         Total Baris: ${data.length}
+        ${totalAmount > 0 ? `&nbsp;|&nbsp; Total Amount: ${currDisplay} ${formatNumber(totalAmount)}` : ''}
       </h2>
 
       <div style="overflow:auto; max-height:400px;">
@@ -1160,12 +1154,38 @@ function renderDetailTable(data, projectKey, status) {
   `;
 
   data.forEach(r => {
-    html += `
-      <tr>
-        ${DETAIL_COLUMNS.map(c => `<td>${r[c] ?? ""}</td>`).join("")}
-      </tr>
-    `;
+    html += `<tr>`;
+    DETAIL_COLUMNS.forEach(c => {
+      const isNum = NUMBER_COLUMNS.has(c);
+      const val = r[c] ?? "";
+      // Format PRICE and AMOUNT with number formatting
+      let displayVal = val;
+      if ((c === "PRICE" || c === "AMOUNT") && val !== "") {
+        displayVal = formatNumber(val);
+      }
+      html += `<td${isNum ? ' class="col-number"' : ''}>${displayVal}</td>`;
+    });
+    html += `</tr>`;
   });
+
+  // Add totals footer row
+  html += `<tr style="font-weight:bold; background:#f0f0f0;">`;
+  DETAIL_COLUMNS.forEach(c => {
+    if (c === "ITEM NAME") {
+      html += `<td colspan="1"><strong>TOTAL</strong></td>`;
+    } else if (c === "QTY") {
+      const totalQty = data.reduce((sum, r) => {
+        const q = parseFloat(r["QTY"]);
+        return sum + (isNaN(q) ? 0 : q);
+      }, 0);
+      html += `<td class="col-number"><strong>${formatNumber(totalQty)}</strong></td>`;
+    } else if (c === "AMOUNT") {
+      html += `<td class="col-number"><strong>${formatNumber(totalAmount)}</strong></td>`;
+    } else {
+      html += `<td></td>`;
+    }
+  });
+  html += `</tr>`;
 
   html += `
           </tbody>
@@ -1322,13 +1342,6 @@ function renderCharts() {
             const dataset = bar.datasets[el.datasetIndex];
             const status = bar.labels[el.index];
             
-            console.log('Bar clicked:', {
-              status,
-              delayValue: dataset.delayValue,
-              prList: dataset.prList,
-              prListLength: dataset.prList ? dataset.prList.length : 0
-            });
-            
             showDetailTable(key, status, dataset.prList, dataset.delayValue);
           },
           scales: {
@@ -1471,7 +1484,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
     status.textContent = `✅ BERHASIL! ${data.length} data berhasil diupdate. Merefresh dashboard...`;
     status.style.color = 'green';
     
-    // Save timestamp to Supabase
     const timestamp = new Date().toISOString();
     localStorage.setItem('lastUpdated', timestamp);
     
@@ -1539,9 +1551,28 @@ function parseCSV(file) {
             continue;
           }
 
+          // Kolom numerik yang harus dikonversi dari format koma ke titik
+          const NUMERIC_COLS = new Set(["PRICE", "AMOUNT", "QTY"]);
+
           const obj = {};
           headers.forEach((header, idx) => {
-            obj[header] = values[idx] === '' ? null : values[idx];
+            let val = values[idx] === '' ? null : values[idx];
+            
+            // Sanitasi kolom numerik: ubah "1.234,56" ke "1234.56" atau "0,00" ke "0.00"
+            if (val !== null && NUMERIC_COLS.has(header.toUpperCase().trim())) {
+              let cleaned = val.toString().trim();
+              // Format ribuan dengan titik dan desimal koma (1.234,56)
+              if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(cleaned)) {
+                cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+              } else {
+                // Format sederhana: ganti koma dengan titik (0,00 ke 0.00)
+                cleaned = cleaned.replace(',', '.');
+              }
+              const num = parseFloat(cleaned);
+              val = isNaN(num) ? null : num;
+            }
+            
+            obj[header] = val;
           });
           
           data.push(obj);
