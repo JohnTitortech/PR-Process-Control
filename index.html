@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     * {
@@ -20,6 +21,33 @@
       padding: 20px;
       background: #fafafa;
       margin: 0;
+    }
+
+    /* === LOADING OVERLAY === */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.85);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      font-size: 18px;
+      font-weight: 600;
+      color: #667eea;
+      gap: 16px;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #e0e0e0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     /* === LOGIN PAGE STYLES === */
@@ -245,21 +273,26 @@
       color: white;
     }
 
+    .btn-project {
+      background: #9b59b6;
+      color: white;
+    }
+
     /* Detail Table Responsive */
-    #detailTable table {
+    #detailTableWrap table {
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
     }
 
-    #detailTable th,
-    #detailTable td {
+    #detailTableWrap th,
+    #detailTableWrap td {
       padding: 8px;
       text-align: left;
       border: 1px solid #ddd;
     }
 
-    #detailTable th {
+    #detailTableWrap th {
       background-color: #667eea;
       color: white;
       position: sticky;
@@ -272,9 +305,235 @@
       text-align: right !important;
     }
 
-    /* === RESPONSIVE BREAKPOINTS === */
+    /* === PROJECT MANAGER MODAL === */
+    #projectModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 10000;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+      overflow-y: auto;
+    }
 
-    /* Mobile Phones (Portrait) - 320px to 480px */
+    #projectModal.open {
+      display: flex;
+    }
+
+    .modal-box {
+      background: white;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      margin: auto;
+    }
+
+    .modal-header {
+      background: #9b59b6;
+      color: white;
+      padding: 20px 24px;
+      border-radius: 16px 16px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Project list */
+    .project-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .project-item {
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      background: #fafafa;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .project-item.dragging {
+      opacity: 0.4;
+    }
+
+    .project-item.drag-over {
+      border: 2px dashed #9b59b6;
+      background: #f3e5f5;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: #aaa;
+      font-size: 18px;
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .project-fields {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .project-fields input,
+    .project-fields textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    .project-fields input:focus,
+    .project-fields textarea:focus {
+      outline: none;
+      border-color: #9b59b6;
+    }
+
+    .project-fields textarea {
+      resize: vertical;
+      min-height: 60px;
+      font-size: 12px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+
+    .project-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      font-weight: 600;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .btn-move-up,
+    .btn-move-dn {
+      background: #ecf0f1;
+      color: #555;
+    }
+
+    .btn-move-up:hover,
+    .btn-move-dn:hover {
+      background: #bdc3c7;
+    }
+
+    .btn-add-project {
+      width: 100%;
+      padding: 10px;
+      background: #f3e5f5;
+      border: 2px dashed #9b59b6;
+      border-radius: 8px;
+      color: #9b59b6;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-add-project:hover {
+      background: #e8d5f5;
+    }
+
+    .btn-save-projects {
+      background: #9b59b6;
+      color: white;
+      padding: 10px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-save-projects:hover {
+      background: #7d3c98;
+    }
+
+    .btn-cancel-modal {
+      background: #ecf0f1;
+      color: #555;
+      padding: 10px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-cancel-modal:hover {
+      background: #bdc3c7;
+    }
+
+    .alias-hint {
+      font-size: 11px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    /* === RESPONSIVE BREAKPOINTS === */
     @media screen and (max-width: 480px) {
       body {
         padding: 10px;
@@ -341,17 +600,29 @@
         max-height: 200px;
       }
 
-      #detailTable table {
+      #detailTableWrap table {
         font-size: 10px;
       }
 
-      #detailTable th,
-      #detailTable td {
+      #detailTableWrap th,
+      #detailTableWrap td {
         padding: 4px;
+      }
+
+      .modal-box {
+        border-radius: 12px;
+      }
+
+      .project-item {
+        flex-direction: column;
+      }
+
+      .project-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
       }
     }
 
-    /* Mobile Phones (Landscape) & Small Tablets - 481px to 768px */
     @media screen and (min-width: 481px) and (max-width: 768px) {
       .header-bar {
         flex-direction: row;
@@ -381,7 +652,6 @@
       }
     }
 
-    /* Tablets (Portrait) - 769px to 1024px */
     @media screen and (min-width: 769px) and (max-width: 1024px) {
       .row {
         flex-direction: row;
@@ -403,7 +673,6 @@
       }
     }
 
-    /* Laptops & Desktops - 1025px to 1440px */
     @media screen and (min-width: 1025px) and (max-width: 1440px) {
       .row {
         flex-direction: row;
@@ -425,7 +694,6 @@
       }
     }
 
-    /* Large Screens & TVs - 1441px and above */
     @media screen and (min-width: 1441px) {
       body {
         padding: 30px;
@@ -478,17 +746,16 @@
         font-size: 18px;
       }
 
-      #detailTable table {
+      #detailTableWrap table {
         font-size: 14px;
       }
 
-      #detailTable th,
-      #detailTable td {
+      #detailTableWrap th,
+      #detailTableWrap td {
         padding: 10px;
       }
     }
 
-    /* Ultra-wide screens - 2K and 4K */
     @media screen and (min-width: 2000px) {
       body {
         max-width: 2400px;
@@ -511,7 +778,6 @@
       }
     }
 
-    /* Print styles */
     @media print {
       body {
         background: white;
@@ -520,7 +786,9 @@
 
       .header-bar,
       .control-buttons,
-      .logout-btn {
+      .logout-btn,
+      #loadingOverlay,
+      #projectModal {
         display: none !important;
       }
 
@@ -537,6 +805,33 @@
   </style>
 </head>
 <body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <span id="loadingText">Memuat data...</span>
+</div>
+
+<!-- ========== PROJECT MANAGER MODAL ========== -->
+<div id="projectModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>⚙️ Manage Project / BIIL APPROVAL</h2>
+      <button class="modal-close" onclick="closeProjectModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#666;font-size:13px;margin-top:0;">
+        Drag <b>☰</b> untuk mengatur urutan. Aliases adalah nilai kolom <b>BIIL APPROVAL</b> yang akan dikelompokkan ke project ini — pisahkan dengan baris baru.
+      </p>
+      <div class="project-list" id="projectList"></div>
+      <button class="btn-add-project" onclick="addProjectRow()">+ Tambah Project Baru</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel-modal" onclick="closeProjectModal()">Batal</button>
+      <button class="btn-save-projects" onclick="saveProjects()">💾 Simpan & Terapkan</button>
+    </div>
+  </div>
+</div>
 
 <!-- ========================================
      LOGIN PAGE
@@ -591,9 +886,12 @@
 
   <!-- Control Buttons (conditional) -->
   <div class="control-buttons" id="controlButtons">
-    <input type="file" id="fileInput" accept=".csv" style="display:none;">
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none;">
     <button id="uploadBtn" class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
-      📁 Upload CSV untuk Update Data
+      📁 Upload CSV / Excel
+    </button>
+    <button id="projectBtn" class="btn btn-project" onclick="openProjectModal()" style="display:none;">
+      ⚙️ Manage Project
     </button>
     <button class="btn btn-refresh" onclick="location.reload()">
       🔄 Refresh Dashboard
@@ -635,7 +933,6 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
   const rememberMe = document.getElementById('rememberMe').checked;
   const errorMsg = document.getElementById('errorMessage');
   
-  // Auto-detect role based on credentials
   let detectedRole = null;
   
   for (const [role, cred] of Object.entries(CREDENTIALS)) {
@@ -646,13 +943,11 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
   }
   
   if (detectedRole) {
-    // Login berhasil
     currentUser = {
       role: detectedRole,
       username: username
     };
     
-    // Simpan session based on Remember Me
     if (rememberMe) {
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
       localStorage.setItem('rememberMe', 'true');
@@ -682,12 +977,14 @@ function showDashboard() {
   document.getElementById('userBadge').textContent = currentUser.role;
   document.getElementById('usernameDisplay').textContent = `Hello, ${currentUser.username}`;
   
-  if (currentUser.role === 'USER') {
+  if (currentUser.role !== 'MASTER') {
     document.getElementById('uploadBtn').style.display = 'none';
-    document.getElementById('fileInput').style.display = 'none';
+    document.getElementById('projectBtn').style.display = 'none';
+  } else {
+    document.getElementById('projectBtn').style.display = 'inline-block';
   }
   
-  loadDataFromSupabase();
+  loadAll();
 }
 
 /* =========================
@@ -733,32 +1030,6 @@ const SUPABASE_ANON_KEY = "sb_publishable_e8ZNaYuT78gqBIiunJZm7g_HWPMNFQG";
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const PROJECT_MAP = {
-  "230-24-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-FORTUNER CCV": "Fortuner CCV (Reguler) - Item PR",
-  "070-23-VEHICLE CONVERSION-PROJECT-CONV-AMBULANCE": "Fortuner Ambulance (Project) - Item PR",
-  "143-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-AMBULANCE FORTUNER": "Fortuner Ambulance (Reguler) - Item PR",
-  "163-25-VEHICLE CONVERSION-PROJECT-CONVERSION SALES REGULER-SIENTA WELCAB": "Sienta Welcab (Reguler) - Item PR",
-  "GRANMAX_PT_TJ":"Granmax PT (TJ) - Off Warranty - Item PR",
-  "075-24-VEHICLE, QUALITY & AFTER SALES-EXPENSES-CONVERSION WARRANTY-GRANMAX PUBLIC TRANSPORT (TJ)": "Granmax PT (TJ) - Warranty - Item PR",
-  "074-24-VEHICLE, QUALITY & AFTER SALES-PROJECT-CONVERSION OFF-WARRANTY-GRANMAX PUBLIC TRANSPORT (SURABAYA)": "Granmax PT (Surabaya) - Off Warranty - Item PR",
-  "075-24-VEHICLE, QUALITY & AFTER SALES-EXPENSES-CONVERSION WARRANTY-GRANMAX PUBLIC TRANSPORT (BANJAR)": "Granmax PT (Banjar) - Warranty - Item PR",
-  "PRE-MAIN_INSP_MAIN-SPARE_TOOLS_ADMIN": "Others - Item PR"
-};
-
-const PROJECT_ALIASES = {
-  "GRANMAX_PT_TJ": [
-    "074-24-VEHICLE, QUALITY & AFTER SALES-PROJECT-CONVERSION OFF-WARRANTY-GRANMAX PUBLIC TRANSPORT (TJ)",
-    "074-24-VEHICLE, QUALITY & AFTER SALES-PROJECT-CONVERSION OFF-GRANMAX PUBLIC TRANSPORT (TJ)"
-  ],
-  "PRE-MAIN_INSP_MAIN-SPARE_TOOLS_ADMIN":[
-    "004-25-VEHICLE, QUALITY & AFTER SALES-EXPENSES-REPAIR & MAINTENANCE-ASSET - PREVENTIVE MAINTENANCE",
-    "012-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - ROUTINE INSPECTION/SERVICE",
-    "014-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - SPAREPART",
-    "015-25-VEHICLE CONVERSION-EXPENSES-REPAIR & MAINTENANCE-GENERAL - TOOLS & EQUIPMENT",
-    "083-25-VEHICLE CONVERSION-EXPENSES-ADMINISTRATION EXPENSES-GENERAL & ADMINISTRATION"
-  ]
-};
-
 const ACTIVE_USER = "MILA";
 
 const STATUS_PR = [
@@ -775,9 +1046,6 @@ const STATUS_PR = [
   "APPROVE MANAGER PURCHASING",
   "APPROVE GM PURCHASING",
   "NEW PO",
-  "PO PUBLISH",
-  "PO RECEIVE SUPPLIER",
-  "CREATE PACKING SLIP",
   "RECEIVED"
 ];
 
@@ -797,11 +1065,6 @@ const EXCLUDED_STATUS = new Set([
   "DELETE PR"
 ]);
 
-const BAR_EXCLUDED_STATUS = new Set(["RECEIVED"]);
-
-// =============================================
-// UPDATED: Added CURR, PRICE, AMOUNT columns
-// =============================================
 const DETAIL_COLUMNS = [
   "PR NO", 
   "PR DATE", 
@@ -820,48 +1083,261 @@ const DETAIL_COLUMNS = [
   "REMARK"
 ];
 
-// Columns that should be right-aligned (numeric)
 const NUMBER_COLUMNS = new Set(["QTY", "PRICE", "AMOUNT"]);
 
 let rows = [];
 let charts = [];
+let projectList = []; // [{key, label, aliases:[]}]
 
 /* =========================
-   LOAD DATA FROM SUPABASE
+   LOADING OVERLAY
 ========================= */
-async function loadDataFromSupabase() {
-  const { data, error } = await supabaseClient
-    .from("PR LIST")
-    .select("*");
+function showLoading(msg = "Memuat data...") {
+  document.getElementById("loadingText").textContent = msg;
+  document.getElementById("loadingOverlay").style.display = "flex";
+}
 
-  if (error) {
-    console.error("Supabase error:", error);
-    return;
+function hideLoading() {
+  document.getElementById("loadingOverlay").style.display = "none";
+}
+
+/* =========================
+   LOAD ALL DATA
+========================= */
+async function loadAll() {
+  showLoading("Memuat data...");
+  try {
+    // Load projects & PR data dari Supabase
+    const [projResult, dataResult] = await Promise.all([
+      supabaseClient.from("PROJECT_CONFIG").select("*").order('order_index', { ascending: true }),
+      supabaseClient.from("PR LIST").select("*")
+    ]);
+
+    if (projResult.error) throw new Error("Projects: " + projResult.error.message);
+    if (dataResult.error) throw new Error("Data: " + dataResult.error.message);
+
+    // Parse project list
+    projectList = (projResult.data || []).map(p => ({
+      key: p.key,
+      label: p.label,
+      aliases: p.aliases ? JSON.parse(p.aliases) : []
+    }));
+
+    // Parse PR data
+    rows = dataResult.data
+      .map(r => {
+        const o = {};
+        Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
+        return o;
+      })
+      .filter(r =>
+        r["USER"] === ACTIVE_USER &&
+        !EXCLUDED_STATUS.has(r["STATUS PR"])
+      );
+
+    const periodText = getPRDatePeriod(rows);
+    document.getElementById("periodInfo").textContent = periodText ? periodText : "";
+    
+    await displayLastUpdatedFromSupabase();
+
+    Chart.register(ChartDataLabels);
+    renderCharts();
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById("chartContainer").innerHTML =
+      `<div style="color:red;padding:20px;">❌ Gagal memuat data: ${err.message}</div>`;
+  } finally {
+    hideLoading();
+  }
+}
+
+/* =========================
+   PROJECT MANAGER MODAL
+========================= */
+function openProjectModal() {
+  renderProjectList();
+  document.getElementById("projectModal").classList.add("open");
+}
+
+function closeProjectModal() {
+  document.getElementById("projectModal").classList.remove("open");
+}
+
+function renderProjectList() {
+  const container = document.getElementById("projectList");
+  container.innerHTML = "";
+
+  projectList.forEach((p, idx) => {
+    container.appendChild(createProjectRow(p, idx));
+  });
+
+  initDragDrop();
+}
+
+function createProjectRow(p, idx) {
+  const item = document.createElement("div");
+  item.className = "project-item";
+  item.dataset.idx = idx;
+  item.draggable = true;
+
+  item.innerHTML = `
+    <div class="drag-handle" title="Drag untuk mengatur urutan">☰</div>
+    <div class="project-fields">
+      <div>
+        <div class="field-label">KEY (nilai BIIL APPROVAL utama)</div>
+        <input type="text" class="proj-key" value="${escHtml(p.key)}" placeholder="Contoh: 230-24-VEHICLE CONVERSION-..." />
+      </div>
+      <div>
+        <div class="field-label">LABEL (nama tampilan di dashboard)</div>
+        <input type="text" class="proj-label" value="${escHtml(p.label)}" placeholder="Contoh: Fortuner CCV (Reguler) - Item PR" />
+      </div>
+      <div>
+        <div class="field-label">ALIASES (nilai BIIL APPROVAL lain yang dikelompokkan ke project ini)</div>
+        <textarea class="proj-aliases" placeholder="Satu alias per baris">${(p.aliases || []).join("\n")}</textarea>
+        <div class="alias-hint">💡 Pisahkan dengan baris baru. Kosongkan jika tidak ada alias.</div>
+      </div>
+    </div>
+    <div class="project-actions">
+      <button class="btn-sm btn-danger" onclick="removeProjectRow(${idx})">🗑</button>
+      <button class="btn-sm btn-move-up" onclick="moveProject(${idx}, -1)">▲</button>
+      <button class="btn-sm btn-move-dn" onclick="moveProject(${idx}, 1)">▼</button>
+    </div>
+  `;
+  return item;
+}
+
+function addProjectRow() {
+  projectList.push({ key: "", label: "", aliases: [] });
+  renderProjectList();
+  const list = document.getElementById("projectList");
+  list.scrollTop = list.scrollHeight;
+}
+
+function removeProjectRow(idx) {
+  if (!confirm("Hapus project ini?")) return;
+  projectList.splice(idx, 1);
+  renderProjectList();
+}
+
+function moveProject(idx, dir) {
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= projectList.length) return;
+  const tmp = projectList[idx];
+  projectList[idx] = projectList[newIdx];
+  projectList[newIdx] = tmp;
+  renderProjectList();
+}
+
+function collectProjectsFromForm() {
+  const items = document.querySelectorAll("#projectList .project-item");
+  const result = [];
+  items.forEach(item => {
+    const key = item.querySelector(".proj-key").value.trim();
+    const label = item.querySelector(".proj-label").value.trim();
+    const aliases = item.querySelector(".proj-aliases").value
+      .split("\n").map(a => a.trim()).filter(Boolean);
+    if (key || label) result.push({ key, label, aliases });
+  });
+  return result;
+}
+
+async function saveProjects() {
+  const projects = collectProjectsFromForm();
+
+  // Validasi
+  for (const p of projects) {
+    if (!p.key) {
+      alert("Ada project yang KEY-nya kosong. Harap isi semua KEY.");
+      return;
+    }
+    if (!p.label) {
+      alert(`Project dengan key "${p.key}" belum punya label. Harap isi LABEL.`);
+      return;
+    }
   }
 
-  rows = data
-    .map(r => {
-      const o = {};
-      Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
-      return o;
-    })
-    .filter(r =>
-      r["USER"] === ACTIVE_USER &&
-      !EXCLUDED_STATUS.has(r["STATUS PR"])
-    );
+  showLoading("Menyimpan konfigurasi project...");
+  try {
+    // Hapus semua project lama
+    await supabaseClient.from("PROJECT_CONFIG").delete().neq('key', '');
 
-  const periodText = getPRDatePeriod(rows);
-  document.getElementById("periodInfo").textContent = periodText ? periodText : "";
-  
-  await displayLastUpdatedFromSupabase();
+    // Insert project baru dengan urutan
+    const insertData = projects.map((p, idx) => ({
+      key: p.key,
+      label: p.label,
+      aliases: JSON.stringify(p.aliases),
+      order_index: idx
+    }));
 
-  Chart.register(ChartDataLabels);
-  renderCharts();
+    const { error } = await supabaseClient
+      .from("PROJECT_CONFIG")
+      .insert(insertData);
+
+    if (error) throw new Error(error.message);
+
+    projectList = projects;
+    closeProjectModal();
+    hideLoading();
+
+    // Re-render chart dengan config baru
+    Chart.register(ChartDataLabels);
+    renderCharts();
+
+    alert(`✅ ${projects.length} project berhasil disimpan!`);
+  } catch (err) {
+    hideLoading();
+    alert("❌ Gagal menyimpan: " + err.message);
+  }
+}
+
+/* ── Drag & Drop reorder ─────────────────────────────────── */
+function initDragDrop() {
+  const list = document.getElementById("projectList");
+  const items = list.querySelectorAll(".project-item");
+  let dragSrc = null;
+
+  items.forEach(item => {
+    item.addEventListener("dragstart", function (e) {
+      dragSrc = this;
+      this.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    item.addEventListener("dragend", function () {
+      this.classList.remove("dragging");
+      list.querySelectorAll(".project-item").forEach(i => i.classList.remove("drag-over"));
+    });
+    item.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      list.querySelectorAll(".project-item").forEach(i => i.classList.remove("drag-over"));
+      if (this !== dragSrc) this.classList.add("drag-over");
+    });
+    item.addEventListener("drop", function (e) {
+      e.preventDefault();
+      if (this === dragSrc) return;
+
+      const srcIdx = parseInt(dragSrc.dataset.idx);
+      const destIdx = parseInt(this.dataset.idx);
+
+      const moved = projectList.splice(srcIdx, 1)[0];
+      projectList.splice(destIdx, 0, moved);
+      renderProjectList();
+    });
+  });
 }
 
 /* =========================
    UTILITY FUNCTIONS
 ========================= */
+function normalizeKey(key) {
+  return key.toString().toUpperCase().replace(/\s+/g, " ").trim();
+}
+
+function escHtml(str) {
+  return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function formatNumber(value) {
   if (value === null || value === undefined || value === '') return '';
   const num = parseFloat(value);
@@ -894,15 +1370,6 @@ function formatLastUpdated(timestamp) {
   return `Last updated: ${time} · ${day} ${month} ${year}`;
 }
 
-function displayLastUpdated() {
-  const lastUpdated = localStorage.getItem('lastUpdated');
-  const element = document.getElementById('lastUpdated');
-  
-  if (lastUpdated && element) {
-    element.textContent = formatLastUpdated(lastUpdated);
-  }
-}
-
 async function displayLastUpdatedFromSupabase() {
   const element = document.getElementById('lastUpdated');
   if (!element) return;
@@ -916,7 +1383,6 @@ async function displayLastUpdatedFromSupabase() {
     
     if (error) {
       console.log('No last_updated info in Supabase:', error.message);
-      displayLastUpdated();
       return;
     }
     
@@ -925,7 +1391,6 @@ async function displayLastUpdatedFromSupabase() {
     }
   } catch (err) {
     console.log('Error fetching last_updated:', err);
-    displayLastUpdated();
   }
 }
 
@@ -956,33 +1421,28 @@ function getPRDatePeriod(rows) {
   return `Periode ${formatDateID(min)} - ${formatDateID(max)}`;
 }
 
-function getOrderedBarStatus(allStatusFromData) {
-  return STATUS_PR.filter(s => allStatusFromData.includes(s));
-}
-
-function normalizeKey(key) {
-  return key.toString().toUpperCase().replace(/\s+/g, " ").trim();
-}
-
 function detectProject(bill) {
   if (!bill) return null;
   const text = bill.toString().toUpperCase().replace(/\s+/g, " ");
-  
-  for (const [aliasKey, patterns] of Object.entries(PROJECT_ALIASES)) {
-    for (const pattern of patterns) {
-      if (text.includes(pattern)) {
-        return aliasKey;
-      }
+
+  for (const p of projectList) {
+    // Cek aliases dulu
+    for (const alias of (p.aliases || [])) {
+      if (text.includes(alias.toUpperCase())) return p.key;
     }
+    // Cek key utama
+    if (text.includes(p.key.toUpperCase())) return p.key;
   }
-  
-  return Object.keys(PROJECT_MAP).find(k => text.includes(k)) || null;
+  return null;
 }
 
 function getOrderedStatus(allStatusFromData) {
-  const master = STATUS_PR.slice();
-  const extras = allStatusFromData.filter(s => !master.includes(s));
-  return [...master, ...extras];
+  const extras = allStatusFromData.filter(s => !STATUS_PR.includes(s));
+  return [...STATUS_PR.filter(s => allStatusFromData.includes(s)), ...extras];
+}
+
+function getOrderedBarStatus(allStatusFromData) {
+  return STATUS_PR.filter(s => allStatusFromData.includes(s));
 }
 
 function parseProcessDate(value) {
@@ -1000,10 +1460,13 @@ function getDelayColor(delay) {
 }
 
 function closeAllDetails() {
-  Object.keys(PROJECT_MAP).forEach(k => {
-    const el = document.getElementById(`detail-${k}`);
-    if (el) el.style.display = "none";
-  });
+  document.querySelectorAll("[id^='detail-slot-']").forEach(el => el.style.display = "none");
+}
+
+function extractBiilNumber(biilApproval) {
+  if (!biilApproval) return '';
+  const match = biilApproval.match(/^(\d{3}-\d{2})/);
+  return match ? match[1] : biilApproval;
 }
 
 /* =========================
@@ -1021,7 +1484,7 @@ function buildPieData(projectKey) {
     map[status].add(r["PR NO"]);
   });
 
-  const orderedStatus = getOrderedStatus(Object.keys(map));
+  const orderedStatus = STATUS_PR;
 
   return {
     labels: orderedStatus,
@@ -1035,7 +1498,7 @@ function buildPieData(projectKey) {
 ========================= */
 function buildDelayData(projectKey) {
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
   const statusMap = {};
 
@@ -1069,7 +1532,7 @@ function buildDelayData(projectKey) {
     if (!statusMap[status]) return;
     const delays = Object.keys(statusMap[status])
       .map(Number)
-      .sort((a,b) => a-b);
+      .sort((a, b) => a - b);
 
     let prev = 0;
 
@@ -1093,6 +1556,8 @@ function buildDelayData(projectKey) {
 
 function showDetailTable(projectKey, status, prList, delay = null) {
   closeAllDetails();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
   const filtered = rows.filter(r => {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return false;
@@ -1102,9 +1567,6 @@ function showDetailTable(projectKey, status, prList, delay = null) {
     if (delay !== null) {
       const d = parseProcessDate(r["PROCESS DATE"]);
       if (!d) return false;
-
-      const today = new Date();
-      today.setHours(0,0,0,0);
 
       const diff = Math.floor((today - d) / 86400000);
       
@@ -1121,24 +1583,28 @@ function showDetailTable(projectKey, status, prList, delay = null) {
 }
 
 function renderDetailTable(data, projectKey, status) {
-  const slot = document.getElementById(`detail-${projectKey}`);
+  const slotId = `detail-slot-${projectKey.replace(/[^a-zA-Z0-9]/g, "_")}`;
+  const slot = document.getElementById(slotId);
+  if (!slot) return;
+  
   slot.innerHTML = "";
   slot.style.display = "block";
 
-  // Calculate totals for AMOUNT column
+  const proj = projectList.find(p => p.key === projectKey);
+  const projLabel = proj ? proj.label : projectKey;
+
   const totalAmount = data.reduce((sum, r) => {
     const amt = parseFloat(r["AMOUNT"]);
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0);
 
-  // Get unique currencies
   const currencies = [...new Set(data.map(r => r["CURR"]).filter(Boolean))];
   const currDisplay = currencies.length > 0 ? currencies.join(', ') : '';
 
   let html = `
-    <div class="card" id="detailTable">
+    <div class="card" id="detailTableWrap">
       <h2>
-        ${PROJECT_MAP[projectKey]}<br>
+        ${escHtml(projLabel)}<br>
         Status: ${status}<br>
         Total Baris: ${data.length}
         ${totalAmount > 0 ? `&nbsp;|&nbsp; Total Amount: ${currDisplay} ${formatNumber(totalAmount)}` : ''}
@@ -1159,8 +1625,12 @@ function renderDetailTable(data, projectKey, status) {
     html += `<tr>`;
     DETAIL_COLUMNS.forEach(c => {
       const isNum = NUMBER_COLUMNS.has(c);
-      const val = r[c] ?? "";
-      // Format PRICE and AMOUNT with number formatting
+      let val = r[c] ?? "";
+      
+      if (c === "BIIL APPROVAL" && val) {
+        val = extractBiilNumber(val);
+      }
+      
       let displayVal = val;
       if ((c === "PRICE" || c === "AMOUNT") && val !== "") {
         displayVal = formatNumber(val);
@@ -1170,7 +1640,6 @@ function renderDetailTable(data, projectKey, status) {
     html += `</tr>`;
   });
 
-  // Add totals footer row
   html += `<tr style="font-weight:bold; background:#f0f0f0;">`;
   DETAIL_COLUMNS.forEach(c => {
     if (c === "ITEM NAME") {
@@ -1214,7 +1683,18 @@ function renderCharts() {
   clearCharts();
   const container = document.getElementById("chartContainer");
 
-  Object.keys(PROJECT_MAP).forEach(key => {
+  if (projectList.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#888;">
+        <p style="font-size:18px;">⚙️ Belum ada project yang dikonfigurasi.</p>
+        ${currentUser.role === "MASTER" ? '<p>Klik tombol <strong>⚙️ Manage Project</strong> untuk menambahkan project.</p>' : '<p>Hubungi admin untuk mengkonfigurasi project.</p>'}
+      </div>`;
+    return;
+  }
+
+  projectList.forEach(proj => {
+    const key = proj.key;
+
     const row = document.createElement("div");
     row.className = "row";
 
@@ -1225,7 +1705,7 @@ function renderCharts() {
     barCard.className = "card";
 
     const pieTitle = document.createElement("h2");
-    pieTitle.textContent = PROJECT_MAP[key];
+    pieTitle.textContent = proj.label;
 
     const barTitle = document.createElement("h2");
     barTitle.textContent = "PR Delay Status (Days)";
@@ -1247,8 +1727,9 @@ function renderCharts() {
     row.appendChild(barCard);
     container.appendChild(row);
 
+    const slotId = `detail-slot-${key.replace(/[^a-zA-Z0-9]/g, "_")}`;
     const detailSlot = document.createElement("div");
-    detailSlot.id = `detail-${key}`;
+    detailSlot.id = slotId;
     detailSlot.style.display = "none";
     container.appendChild(detailSlot);
 
@@ -1375,32 +1856,48 @@ function renderCharts() {
           }
         }
       }));
+    } else {
+      barCanvas.style.display = "none";
+      barCard.appendChild(Object.assign(document.createElement("p"), {
+        textContent: "Tidak ada delay",
+        style: "text-align:center;color:#aaa;font-size:12px;"
+      }));
     }
   });
 }
 
 /* =========================
-   CSV UPLOAD HANDLER
+   CSV/EXCEL UPLOAD HANDLER
 ========================= */
 document.getElementById('fileInput').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-
   const status = document.getElementById('uploadStatus');
-  status.textContent = '⏳ Membaca file CSV...';
-  status.style.color = 'orange';
 
   try {
-    const data = await parseCSV(file);
+    status.textContent = '⏳ Membaca file...';
+    status.style.color = 'orange';
+
+    const ext = file.name.split(".").pop().toLowerCase();
+    let data;
     
+    if (ext === "csv") {
+      data = await parseCSV(file);
+    } else if (ext === "xlsx" || ext === "xls") {
+      data = await parseExcel(file);
+    } else {
+      throw new Error("Format tidak didukung. Gunakan CSV atau Excel.");
+    }
+
     if (data.length === 0) {
-      throw new Error('File CSV kosong atau format tidak valid');
+      throw new Error('File kosong atau format tidak valid');
     }
 
     status.textContent = `📊 ${data.length} baris terbaca. Menghapus SEMUA data lama...`;
+    showLoading(`Mengupload ${data.length} baris...`);
     
     console.log('Sample data:', data[0]);
-    console.log('Kolom CSV:', Object.keys(data[0]));
+    console.log('Kolom:', Object.keys(data[0]));
     
     try {
       let deleteSuccess = false;
@@ -1487,7 +1984,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
     status.style.color = 'green';
     
     const timestamp = new Date().toISOString();
-    localStorage.setItem('lastUpdated', timestamp);
     
     try {
       await supabaseClient
@@ -1503,11 +1999,13 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
       console.log('Failed to save timestamp to Supabase:', err);
     }
 
+    hideLoading();
     setTimeout(() => {
       location.reload();
     }, 2000);
 
   } catch (err) {
+    hideLoading();
     status.textContent = `❌ ERROR: ${err.message}`;
     status.style.color = 'red';
     console.error('Upload error:', err);
@@ -1553,21 +2051,17 @@ function parseCSV(file) {
             continue;
           }
 
-          // Kolom numerik yang harus dikonversi dari format koma ke titik
           const NUMERIC_COLS = new Set(["PRICE", "AMOUNT", "QTY"]);
 
           const obj = {};
           headers.forEach((header, idx) => {
             let val = values[idx] === '' ? null : values[idx];
             
-            // Sanitasi kolom numerik: ubah "1.234,56" ke "1234.56" atau "0,00" ke "0.00"
             if (val !== null && NUMERIC_COLS.has(header.toUpperCase().trim())) {
               let cleaned = val.toString().trim();
-              // Format ribuan dengan titik dan desimal koma (1.234,56)
               if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(cleaned)) {
                 cleaned = cleaned.replace(/\./g, '').replace(',', '.');
               } else {
-                // Format sederhana: ganti koma dengan titik (0,00 ke 0.00)
                 cleaned = cleaned.replace(',', '.');
               }
               const num = parseFloat(cleaned);
@@ -1611,6 +2105,49 @@ function parseCSVLine(line, delimiter = ',') {
   
   result.push(current.trim());
   return result.map(v => v.replace(/^"|"$/g, ''));
+}
+
+function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+        const sh = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sh, { raw: false, dateNF: "yyyy-mm-dd" });
+        
+        if (!json.length) {
+          reject(new Error("Sheet Excel kosong"));
+          return;
+        }
+        
+        const NUMERIC = new Set(["PRICE", "AMOUNT", "QTY"]);
+        const data = json.map(row => {
+          const obj = {};
+          Object.keys(row).forEach(k => {
+            let val = row[k];
+            if (val === "" || val === undefined) {
+              obj[k] = null;
+              return;
+            }
+            if (NUMERIC.has(k.toUpperCase().trim())) {
+              let c = val.toString().trim().replace(/\./g, "").replace(",", ".");
+              const n = parseFloat(c);
+              obj[k] = isNaN(n) ? null : n;
+            } else {
+              obj[k] = val;
+            }
+          });
+          return obj;
+        });
+        resolve(data);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("Gagal membaca file Excel"));
+    reader.readAsArrayBuffer(file);
+  });
 }
 </script>
 
