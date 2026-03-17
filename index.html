@@ -1826,12 +1826,14 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
       throw new Error('Gagal menghapus data lama: ' + deleteErr.message);
     }
 
-    // === INSERT NEW DATA ===
+    // === UPSERT NEW DATA (safe against duplicate key) ===
     const batchSize = 1000;
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize);
-      const { error: insertError } = await supabaseClient.from('PR LIST').insert(batch);
-      if (insertError) throw insertError;
+      const { error: upsertError } = await supabaseClient
+        .from('PR LIST')
+        .upsert(batch, { onConflict: 'PR NO' });
+      if (upsertError) throw upsertError;
       status.textContent = `📤 Upload: ${Math.min(i + batchSize, data.length)}/${data.length}...`;
       showLoading(`Mengupload data... ${Math.min(i + batchSize, data.length)}/${data.length}`);
     }
