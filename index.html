@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Control Process PR</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://epawoaoslnwlyrcwkfvb.supabase.co https://accounts.google.com https://api.ipify.org; img-src 'self' data: https: blob:; font-src 'self' data:;">
+  <title>Dashboard Control Process PR - Secure</title>
 
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -17,7 +18,7 @@
     }
 
     body {
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
       padding: 20px;
       background: #fafafa;
       margin: 0;
@@ -27,7 +28,7 @@
     #loadingOverlay {
       position: fixed;
       inset: 0;
-      background: rgba(255,255,255,0.85);
+      background: rgba(255,255,255,0.95);
       display: none;
       flex-direction: column;
       justify-content: center;
@@ -50,7 +51,7 @@
       to { transform: rotate(360deg); }
     }
 
-    /* === LOGIN PAGE STYLES === */
+    /* === LOGIN PAGE === */
     #loginPage {
       display: flex;
       justify-content: center;
@@ -76,59 +77,90 @@
       font-size: 24px;
     }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #555;
-      font-weight: 600;
-    }
-
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.3s;
-      box-sizing: border-box;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .login-btn {
+    .google-btn {
       width: 100%;
       padding: 14px;
-      background: #667eea;
-      color: white;
-      border: none;
+      background: white;
+      color: #444;
+      border: 2px solid #ddd;
       border-radius: 8px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
     }
 
-    .login-btn:hover {
-      background: #5568d3;
+    .google-btn:hover:not(:disabled) {
+      background: #f8f8f8;
+      border-color: #999;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
-    .error-message {
-      color: #e74c3c;
+    .google-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .google-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .error-message, .warning-message, .info-message-box {
       text-align: center;
       margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
       display: none;
     }
 
-    /* === DASHBOARD STYLES === */
+    .error-message {
+      color: #c0392b;
+      background: #fadbd8;
+      border: 1px solid #e74c3c;
+    }
+
+    .warning-message {
+      color: #e67e22;
+      background: #fef3e6;
+      border: 1px solid #f39c12;
+    }
+
+    .info-message-box {
+      color: #2980b9;
+      background: #d6eaf8;
+      border: 1px solid #3498db;
+    }
+
+    .security-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+      padding: 12px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #2e7d32;
+      border: 1px solid #81c784;
+    }
+
+    .info-message {
+      color: #666;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* === DASHBOARD === */
     #dashboardPage {
       display: none;
     }
@@ -152,6 +184,13 @@
       flex-wrap: wrap;
     }
 
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid #667eea;
+    }
+
     .user-badge {
       background: #667eea;
       color: white;
@@ -159,6 +198,27 @@
       border-radius: 20px;
       font-size: 14px;
       font-weight: 600;
+    }
+
+    .session-timer {
+      font-size: 12px;
+      color: #666;
+      padding: 6px 12px;
+      background: #f5f5f5;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+    }
+
+    .session-timer.warning {
+      background: #fff3cd;
+      border-color: #ffc107;
+      color: #856404;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
     }
 
     .logout-btn {
@@ -170,6 +230,7 @@
       cursor: pointer;
       font-size: 14px;
       font-weight: 600;
+      transition: background 0.3s;
     }
 
     .logout-btn:hover {
@@ -217,7 +278,6 @@
       height: auto !important;
     }
 
-    /* === PIE HTML LEGEND === */
     .pie-legend {
       display: grid;
       grid-auto-flow: column;
@@ -256,11 +316,12 @@
       border-radius: 5px;
       margin: 5px;
       font-weight: 600;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s, transform 0.2s;
     }
 
     .btn:hover {
       opacity: 0.9;
+      transform: translateY(-2px);
     }
 
     .btn-upload {
@@ -278,7 +339,6 @@
       color: white;
     }
 
-    /* Detail Table Responsive */
     #detailTableWrap table {
       width: 100%;
       border-collapse: collapse;
@@ -300,12 +360,11 @@
       z-index: 10;
     }
 
-    /* Align number columns to right */
     .col-number {
       text-align: right !important;
     }
 
-    /* === PROJECT MANAGER MODAL === */
+    /* === PROJECT MODAL === */
     #projectModal {
       display: none;
       position: fixed;
@@ -353,6 +412,11 @@
       font-size: 24px;
       cursor: pointer;
       line-height: 1;
+      transition: transform 0.2s;
+    }
+
+    .modal-close:hover {
+      transform: rotate(90deg);
     }
 
     .modal-body {
@@ -367,7 +431,6 @@
       gap: 10px;
     }
 
-    /* Project list */
     .project-list {
       display: flex;
       flex-direction: column;
@@ -385,6 +448,11 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
+      transition: all 0.2s;
+    }
+
+    .project-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     .project-item.dragging {
@@ -423,12 +491,14 @@
       border-radius: 6px;
       font-size: 13px;
       font-family: inherit;
+      transition: border-color 0.3s;
     }
 
     .project-fields input:focus,
     .project-fields textarea:focus {
       outline: none;
       border-color: #9b59b6;
+      box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
     }
 
     .project-fields textarea {
@@ -458,6 +528,7 @@
       border: none;
       border-radius: 5px;
       font-weight: 600;
+      transition: all 0.2s;
     }
 
     .btn-danger {
@@ -467,6 +538,7 @@
 
     .btn-danger:hover {
       background: #c0392b;
+      transform: scale(1.05);
     }
 
     .btn-move-up,
@@ -490,11 +562,12 @@
       font-weight: 600;
       font-size: 14px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
 
     .btn-add-project:hover {
       background: #e8d5f5;
+      transform: translateY(-2px);
     }
 
     .btn-save-projects {
@@ -506,6 +579,7 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      transition: background 0.3s;
     }
 
     .btn-save-projects:hover {
@@ -521,6 +595,7 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      transition: background 0.3s;
     }
 
     .btn-cancel-modal:hover {
@@ -533,274 +608,72 @@
       margin-top: 2px;
     }
 
-    /* === RESPONSIVE BREAKPOINTS === */
+    /* === RESPONSIVE === */
     @media screen and (max-width: 480px) {
-      body {
-        padding: 10px;
-      }
-
-      .login-container {
-        padding: 25px 20px;
-      }
-
-      .login-container h1 {
-        font-size: 20px;
-      }
-
-      .header-bar {
-        margin: -10px -10px 15px -10px;
-        padding: 12px 15px;
-        flex-direction: column;
-        text-align: center;
-      }
-
-      .user-info {
-        justify-content: center;
-        width: 100%;
-      }
-
-      .logout-btn {
-        width: 100%;
-      }
-
-      h1 {
-        font-size: 18px;
-        text-align: center;
-      }
-
-      .row {
-        flex-direction: column;
-        gap: 15px;
-      }
-
-      .card {
-        min-width: 100%;
-        padding: 12px;
-      }
-
-      .pie-legend {
-        grid-auto-flow: row;
-        grid-template-rows: auto;
-        grid-template-columns: 1fr;
-        font-size: 11px;
-      }
-
-      .control-buttons {
-        padding: 12px;
-      }
-
-      .btn {
-        width: 100%;
-        margin: 5px 0;
-        padding: 10px 16px;
-        font-size: 14px;
-      }
-
-      canvas {
-        max-height: 200px;
-      }
-
-      #detailTableWrap table {
-        font-size: 10px;
-      }
-
-      #detailTableWrap th,
-      #detailTableWrap td {
-        padding: 4px;
-      }
-
-      .modal-box {
-        border-radius: 12px;
-      }
-
-      .project-item {
-        flex-direction: column;
-      }
-
-      .project-actions {
-        flex-direction: row;
-        flex-wrap: wrap;
-      }
+      body { padding: 10px; }
+      .login-container { padding: 25px 20px; }
+      .login-container h1 { font-size: 20px; }
+      .header-bar { margin: -10px -10px 15px -10px; padding: 12px 15px; flex-direction: column; }
+      .user-info { justify-content: center; width: 100%; }
+      .logout-btn { width: 100%; }
+      h1 { font-size: 18px; text-align: center; }
+      .row { flex-direction: column; gap: 15px; }
+      .card { min-width: 100%; padding: 12px; }
+      .pie-legend { grid-auto-flow: row; grid-template-rows: auto; grid-template-columns: 1fr; font-size: 11px; }
+      .control-buttons { padding: 12px; }
+      .btn { width: 100%; margin: 5px 0; padding: 10px 16px; font-size: 14px; }
+      canvas { max-height: 200px; }
+      #detailTableWrap table { font-size: 10px; }
+      #detailTableWrap th, #detailTableWrap td { padding: 4px; }
+      .modal-box { border-radius: 12px; }
+      .project-item { flex-direction: column; }
+      .project-actions { flex-direction: row; flex-wrap: wrap; }
     }
 
     @media screen and (min-width: 481px) and (max-width: 768px) {
-      .header-bar {
-        flex-direction: row;
-      }
-
-      .row {
-        flex-direction: column;
-        gap: 20px;
-      }
-
-      .card {
-        min-width: 100%;
-      }
-
-      .pie-legend {
-        grid-template-rows: repeat(4, auto);
-        grid-auto-flow: column;
-      }
-
-      .btn {
-        padding: 10px 20px;
-        font-size: 15px;
-      }
-
-      canvas {
-        max-height: 240px;
-      }
+      .header-bar { flex-direction: row; }
+      .row { flex-direction: column; gap: 20px; }
+      .card { min-width: 100%; }
+      .pie-legend { grid-template-rows: repeat(4, auto); grid-auto-flow: column; }
+      .btn { padding: 10px 20px; font-size: 15px; }
+      canvas { max-height: 240px; }
     }
 
     @media screen and (min-width: 769px) and (max-width: 1024px) {
-      .row {
-        flex-direction: row;
-        gap: 20px;
-      }
-
-      .card {
-        min-width: calc(50% - 12px);
-        flex: 1;
-      }
-
-      .pie-legend {
-        grid-template-rows: repeat(6, auto);
-        grid-auto-flow: column;
-      }
-
-      canvas {
-        max-height: 250px;
-      }
+      .row { flex-direction: row; gap: 20px; }
+      .card { min-width: calc(50% - 12px); flex: 1; }
+      .pie-legend { grid-template-rows: repeat(6, auto); grid-auto-flow: column; }
+      canvas { max-height: 250px; }
     }
 
     @media screen and (min-width: 1025px) and (max-width: 1440px) {
-      .row {
-        flex-direction: row;
-        gap: 24px;
-      }
-
-      .card {
-        min-width: calc(50% - 12px);
-        flex: 1;
-      }
-
-      .pie-legend {
-        grid-template-rows: repeat(8, auto);
-        grid-auto-flow: column;
-      }
-
-      canvas {
-        max-height: 260px;
-      }
+      .row { flex-direction: row; gap: 24px; }
+      .card { min-width: calc(50% - 12px); flex: 1; }
+      .pie-legend { grid-template-rows: repeat(8, auto); grid-auto-flow: column; }
+      canvas { max-height: 260px; }
     }
 
     @media screen and (min-width: 1441px) {
-      body {
-        padding: 30px;
-        max-width: 1920px;
-        margin: 0 auto;
-      }
-
-      .header-bar {
-        padding: 20px 30px;
-        margin: -30px -30px 30px -30px;
-      }
-
-      h1 {
-        font-size: 32px;
-      }
-
-      .row {
-        gap: 30px;
-      }
-
-      .card {
-        padding: 24px;
-        min-width: calc(50% - 15px);
-      }
-
-      .card h2 {
-        font-size: 16px;
-      }
-
-      canvas {
-        max-height: 320px;
-      }
-
-      .pie-legend {
-        font-size: 14px;
-        gap: 8px 20px;
-      }
-
-      .pie-legend-color {
-        width: 12px;
-        height: 12px;
-      }
-
-      .control-buttons {
-        padding: 20px;
-      }
-
-      .btn {
-        padding: 14px 28px;
-        font-size: 18px;
-      }
-
-      #detailTableWrap table {
-        font-size: 14px;
-      }
-
-      #detailTableWrap th,
-      #detailTableWrap td {
-        padding: 10px;
-      }
-    }
-
-    @media screen and (min-width: 2000px) {
-      body {
-        max-width: 2400px;
-      }
-
-      h1 {
-        font-size: 36px;
-      }
-
-      .card h2 {
-        font-size: 18px;
-      }
-
-      canvas {
-        max-height: 400px;
-      }
-
-      .pie-legend {
-        font-size: 16px;
-      }
+      body { padding: 30px; max-width: 1920px; margin: 0 auto; }
+      .header-bar { padding: 20px 30px; margin: -30px -30px 30px -30px; }
+      h1 { font-size: 32px; }
+      .row { gap: 30px; }
+      .card { padding: 24px; min-width: calc(50% - 15px); }
+      .card h2 { font-size: 16px; }
+      canvas { max-height: 320px; }
+      .pie-legend { font-size: 14px; gap: 8px 20px; }
+      .pie-legend-color { width: 12px; height: 12px; }
+      .control-buttons { padding: 20px; }
+      .btn { padding: 14px 28px; font-size: 18px; }
+      #detailTableWrap table { font-size: 14px; }
+      #detailTableWrap th, #detailTableWrap td { padding: 10px; }
     }
 
     @media print {
-      body {
-        background: white;
-        padding: 0;
-      }
-
-      .header-bar,
-      .control-buttons,
-      .logout-btn,
-      #loadingOverlay,
-      #projectModal {
-        display: none !important;
-      }
-
-      .card {
-        break-inside: avoid;
-        box-shadow: none;
-        border: 1px solid #333;
-      }
-
-      .row {
-        break-inside: avoid;
-      }
+      body { background: white; padding: 0; }
+      .header-bar, .control-buttons, .logout-btn, #loadingOverlay, #projectModal { display: none !important; }
+      .card { break-inside: avoid; box-shadow: none; border: 1px solid #333; }
+      .row { break-inside: avoid; }
     }
   </style>
 </head>
@@ -812,7 +685,7 @@
   <span id="loadingText">Memuat data...</span>
 </div>
 
-<!-- ========== PROJECT MANAGER MODAL ========== -->
+<!-- Project Manager Modal -->
 <div id="projectModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -833,52 +706,51 @@
   </div>
 </div>
 
-<!-- ========================================
-     LOGIN PAGE
-======================================== -->
+<!-- Login Page -->
 <div id="loginPage">
   <div class="login-container">
     <h1>🔐 Login Dashboard PR</h1>
-    
-    <form id="loginForm">
-      <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="usernameInput" placeholder="Masukkan username" required />
-      </div>
 
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="passwordInput" placeholder="Masukkan password" required />
-      </div>
+    <button class="google-btn" id="googleLoginBtn" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Sign in with Google
+    </button>
 
-      <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" id="rememberMe" style="width: auto; cursor: pointer;">
-        <label for="rememberMe" style="margin: 0; cursor: pointer; font-weight: normal;">Remember Me</label>
-      </div>
+    <div class="error-message" id="errorMessage"></div>
+    <div class="warning-message" id="warningMessage"></div>
 
-      <button type="submit" class="login-btn">LOGIN</button>
-      
-      <div class="error-message" id="errorMessage">Username atau password salah!</div>
-    </form>
+    <div class="security-badge">
+      🔒 Secured with Google OAuth 2.0 + Row Level Security
+    </div>
+
+    <div class="info-message">
+      Login menggunakan akun Google Anda.<br>
+      Akses dashboard sesuai role yang diberikan admin.<br>
+      <strong>💡 Recommended:</strong> Aktifkan 2FA di Google Account.
+    </div>
   </div>
 </div>
 
-<!-- ========================================
-     DASHBOARD PAGE
-======================================== -->
+<!-- Dashboard Page -->
 <div id="dashboardPage">
-  <!-- Header Bar -->
   <div class="header-bar">
     <div class="user-info">
+      <img id="userAvatar" class="user-avatar" src="" alt="User"
+        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2220%22 fill=%22%23667eea%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2218%22%3EU%3C/text%3E%3C/svg%3E'" />
       <span class="user-badge" id="userBadge"></span>
       <span id="usernameDisplay"></span>
+      <span class="session-timer" id="sessionTimer"></span>
     </div>
     <button class="logout-btn" onclick="logout()">🚪 Logout</button>
   </div>
 
   <h1 style="text-align: center;">Dashboard Control Process PR</h1>
 
-  <!-- Control Buttons (conditional) -->
   <div class="control-buttons" id="controlButtons">
     <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none;">
     <button id="uploadBtn" class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
@@ -900,194 +772,176 @@
 </div>
 
 <script>
-/* =========================
-   LOGIN CREDENTIALS
-========================= */
-const CREDENTIALS = {
-  MASTER: {
-    username: 'admin',
-    password: 'master123'
-  },
-  USER: {
-    username: 'user',
-    password: 'user123'
-  }
+'use strict';
+
+/* =====================================================
+   SECURITY CONFIGURATION
+===================================================== */
+const SECURITY_CONFIG = {
+  SESSION_TIMEOUT: 60 * 60 * 1000, // 1 hour
+  SESSION_WARNING: 5 * 60 * 1000,  // Warning at 5 min remaining
+  MAX_LOGIN_ATTEMPTS: 3,
+  LOGIN_COOLDOWN: 5 * 60 * 1000,   // 5 minutes
+  ENABLE_AUDIT_LOG: true
 };
 
-let currentUser = null;
+let loginAttempts = 0;
+let loginCooldownUntil = 0;
+let sessionTimeout = null;
+let sessionWarningShown = false;
 
-/* =========================
-   LOGIN HANDLER
-========================= */
-document.getElementById('loginForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  
-  const username = document.getElementById('usernameInput').value;
-  const password = document.getElementById('passwordInput').value;
-  const rememberMe = document.getElementById('rememberMe').checked;
-  const errorMsg = document.getElementById('errorMessage');
-  
-  let detectedRole = null;
-  
-  for (const [role, cred] of Object.entries(CREDENTIALS)) {
-    if (cred.username === username && cred.password === password) {
-      detectedRole = role;
-      break;
-    }
-  }
-  
-  if (detectedRole) {
-    currentUser = {
-      role: detectedRole,
-      username: username
-    };
-    
-    if (rememberMe) {
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      localStorage.setItem('rememberMe', 'true');
-    } else {
-      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('rememberMe');
-    }
-    
-    showDashboard();
-    
-  } else {
-    errorMsg.style.display = 'block';
-    setTimeout(() => {
-      errorMsg.style.display = 'none';
-    }, 3000);
-  }
-});
-
-/* =========================
-   SHOW DASHBOARD
-========================= */
-function showDashboard() {
-  document.getElementById('loginPage').style.display = 'none';
-  document.getElementById('dashboardPage').style.display = 'block';
-  
-  document.getElementById('userBadge').textContent = currentUser.role;
-  document.getElementById('usernameDisplay').textContent = `Hello, ${currentUser.username}`;
-  
-  if (currentUser.role !== 'MASTER') {
-    document.getElementById('uploadBtn').style.display = 'none';
-    document.getElementById('projectBtn').style.display = 'none';
-  } else {
-    document.getElementById('projectBtn').style.display = 'inline-block';
-  }
-  
-  loadAll();
-}
-
-/* =========================
-   LOGOUT
-========================= */
-function logout() {
-  if (confirm('Yakin ingin logout?')) {
-    sessionStorage.removeItem('currentUser');
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('rememberMe');
-    currentUser = null;
-    location.reload();
-  }
-}
-
-/* =========================
-   CHECK SESSION ON LOAD
-========================= */
-window.addEventListener('DOMContentLoaded', () => {
-  let savedUser = localStorage.getItem('currentUser');
-  const rememberMe = localStorage.getItem('rememberMe') === 'true';
-  
-  if (!savedUser) {
-    savedUser = sessionStorage.getItem('currentUser');
-  }
-  
-  if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    showDashboard();
-    
-    if (rememberMe) {
-      document.getElementById('rememberMe').checked = true;
-    }
-  }
-});
-
-/* =========================
-   CONFIG SUPABASE
-========================= */
+/* =====================================================
+   SUPABASE CONFIGURATION
+===================================================== */
 const SUPABASE_URL = "https://epawoaoslnwlyrcwkfvb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_e8ZNaYuT78gqBIiunJZm7g_HWPMNFQG";
 
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* =====================================================
+   APPLICATION CONSTANTS
+===================================================== */
 const ACTIVE_USER = "MILA";
 
 const STATUS_PR = [
-  "NEW PR",
-  "APPROVE CL",
-  "RECEIVE PURCHASING",
-  "INPUT PRICE",
-  "APPROVE MANAGER",
-  "APPROVE FGM",
-  "APPROVE CL COST CONTROL",
-  "APPROVE MANAGER COST CONTROL",
-  "PRICE EVALUATION OK",
-  "APPROVE CL PURCHASING",
-  "APPROVE MANAGER PURCHASING",
-  "APPROVE GM PURCHASING",
-  "NEW PO",
-  "RECEIVED"
+  "NEW PR", "APPROVE CL", "RECEIVE PURCHASING", "INPUT PRICE", "APPROVE MANAGER",
+  "APPROVE FGM", "APPROVE CL COST CONTROL", "APPROVE MANAGER COST CONTROL",
+  "PRICE EVALUATION OK", "APPROVE CL PURCHASING", "APPROVE MANAGER PURCHASING",
+  "APPROVE GM PURCHASING", "NEW PO", "RECEIVED"
 ];
 
 const EXCLUDED_STATUS = new Set([
-  "NOT APPROVE CL",
-  "NOT RECEIVE PURCHASING",
-  "NOT APPROVE MANAJER",
-  "NOT APPROVE GM",
-  "NOT APPROVE FGM",
-  "NOT APPROVE CL COST CONTROL",
-  "NOT APPROVE MANAGER COST CONTROL",
-  "PO CANCEL",
-  "NOT APPROVE CL PURCHASING",
-  "NOT APPROVE MANAGER PURCHASING",
-  "NOT APPROVE GM PURCHASING",
-  "NOT APPROVE FGM PURCHASING",
-  "DELETE PR"
+  "NOT APPROVE CL", "NOT RECEIVE PURCHASING", "NOT APPROVE MANAJER", "NOT APPROVE GM",
+  "NOT APPROVE FGM", "NOT APPROVE CL COST CONTROL", "NOT APPROVE MANAGER COST CONTROL",
+  "PO CANCEL", "NOT APPROVE CL PURCHASING", "NOT APPROVE MANAGER PURCHASING",
+  "NOT APPROVE GM PURCHASING", "NOT APPROVE FGM PURCHASING", "DELETE PR"
 ]);
 
 const DETAIL_COLUMNS = [
-  "PR NO", 
-  "PR DATE", 
-  "USER", 
-  "ITEM NAME", 
-  "UM", 
-  "QTY",
-  "CURR",
-  "PRICE",
-  "AMOUNT",
-  "STATUS PR",
-  "PROCESS DATE", 
-  "PROCESS USER", 
-  "BIIL APPROVAL", 
-  "DETAIL", 
-  "REMARK"
+  "PR NO", "PR DATE", "USER", "ITEM NAME", "UM", "QTY", "CURR", "PRICE", "AMOUNT",
+  "STATUS PR", "PROCESS DATE", "PROCESS USER", "BIIL APPROVAL", "DETAIL", "REMARK"
 ];
 
 const NUMBER_COLUMNS = new Set(["QTY", "PRICE", "AMOUNT"]);
 
+/* =====================================================
+   STATE
+===================================================== */
+let currentUser = null;
 let rows = [];
 let charts = [];
-let projectList = []; // [{key, label, aliases:[]}]
+let projectList = [];
 
-/* =========================
-   LOADING OVERLAY
-========================= */
+/* =====================================================
+   SECURITY FUNCTIONS
+===================================================== */
+async function logAuditEvent(eventType, details = {}) {
+  if (!SECURITY_CONFIG.ENABLE_AUDIT_LOG) return;
+  try {
+    const ipAddress = await getClientIP();
+    await supabaseClient.from('AUDIT_LOG').insert({
+      event_type: eventType,
+      user_email: currentUser?.email || 'anonymous',
+      details: JSON.stringify(sanitizeLogData(details)),
+      ip_address: ipAddress,
+      user_agent: navigator.userAgent.substring(0, 255),
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Audit log failed:', err);
+  }
+}
+
+function sanitizeLogData(data) {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = escHtml(value).substring(0, 500);
+    } else if (typeof value === 'number') {
+      sanitized[key] = value;
+    } else {
+      sanitized[key] = String(value).substring(0, 500);
+    }
+  }
+  return sanitized;
+}
+
+async function getClientIP() {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    const data = await response.json();
+    return data.ip;
+  } catch {
+    return 'unknown';
+  }
+}
+
+function checkLoginCooldown() {
+  const now = Date.now();
+  if (now < loginCooldownUntil) {
+    const remainingSeconds = Math.ceil((loginCooldownUntil - now) / 1000);
+    showWarning(`⏳ Terlalu banyak percobaan login. Tunggu ${remainingSeconds} detik.`);
+    return false;
+  }
+  return true;
+}
+
+function startSessionTimer() {
+  const startTime = Date.now();
+  sessionWarningShown = false;
+  if (sessionTimeout) clearInterval(sessionTimeout);
+
+  sessionTimeout = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = SECURITY_CONFIG.SESSION_TIMEOUT - elapsed;
+
+    if (remaining <= 0) {
+      clearInterval(sessionTimeout);
+      showInfo('⏱️ Session timeout. Silakan login kembali.');
+      logout(true);
+      return;
+    }
+
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    const timerEl = document.getElementById('sessionTimer');
+    if (timerEl) {
+      timerEl.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      if (remaining <= SECURITY_CONFIG.SESSION_WARNING) {
+        timerEl.classList.add('warning');
+        if (!sessionWarningShown) {
+          sessionWarningShown = true;
+          showWarning('⚠️ Session akan berakhir dalam 5 menit. Lakukan aktivitas untuk perpanjang.');
+        }
+      } else {
+        timerEl.classList.remove('warning');
+      }
+    }
+  }, 1000);
+}
+
+function resetSessionTimer() {
+  if (currentUser && sessionTimeout) {
+    startSessionTimer();
+  }
+}
+
+['click', 'keypress', 'scroll', 'mousemove', 'touchstart'].forEach(event => {
+  document.addEventListener(event, () => {
+    if (currentUser) resetSessionTimer();
+  }, { passive: true });
+});
+
+/* =====================================================
+   UI HELPERS
+===================================================== */
 function showLoading(msg = "Memuat data...") {
-  document.getElementById("loadingText").textContent = msg;
+  const el = document.getElementById("loadingText");
+  if (el) el.textContent = msg;
   document.getElementById("loadingOverlay").style.display = "flex";
 }
 
@@ -1095,13 +949,172 @@ function hideLoading() {
   document.getElementById("loadingOverlay").style.display = "none";
 }
 
-/* =========================
-   LOAD ALL DATA
-========================= */
+function showError(message) {
+  const el = document.getElementById('errorMessage');
+  if (el) {
+    el.textContent = message;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 5000);
+  }
+}
+
+function showWarning(message) {
+  const el = document.getElementById('warningMessage');
+  if (el) {
+    el.textContent = message;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 5000);
+  }
+}
+
+function showInfo(message) {
+  let el = document.getElementById('info-message-box');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'info-message-box';
+    el.className = 'info-message-box';
+    el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10001;display:block;';
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 5000);
+}
+
+/* =====================================================
+   AUTHENTICATION
+===================================================== */
+async function signInWithGoogle() {
+  if (!checkLoginCooldown()) return;
+
+  const btn = document.getElementById('googleLoginBtn');
+  if (!btn) return;
+
+  try {
+    btn.disabled = true;
+    btn.textContent = 'Redirecting to Google...';
+    showLoading("Membuka Google Sign In...");
+    await logAuditEvent('LOGIN_ATTEMPT', { method: 'google_oauth' });
+
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname,
+        queryParams: { access_type: 'offline', prompt: 'consent' }
+      }
+    });
+
+    if (error) throw error;
+  } catch (err) {
+    hideLoading();
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Sign in with Google`;
+
+    loginAttempts++;
+    if (loginAttempts >= SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS) {
+      loginCooldownUntil = Date.now() + SECURITY_CONFIG.LOGIN_COOLDOWN;
+      await logAuditEvent('LOGIN_BLOCKED', { reason: 'max_attempts_exceeded' });
+    }
+    await logAuditEvent('LOGIN_FAILED', { error: err.message });
+    showError("❌ Gagal login. Silakan coba lagi.");
+  }
+}
+
+async function logout(isTimeout = false) {
+  const confirmed = isTimeout || confirm('Yakin ingin logout?');
+  if (confirmed) {
+    await logAuditEvent('LOGOUT', { email: currentUser?.email, is_timeout: isTimeout });
+    if (sessionTimeout) clearInterval(sessionTimeout);
+    await supabaseClient.auth.signOut();
+    location.reload();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  showLoading("Memeriksa sesi...");
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    await handleAuthenticatedUser(session.user);
+  } else {
+    hideLoading();
+  }
+
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      await handleAuthenticatedUser(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      location.reload();
+    }
+  });
+});
+
+async function handleAuthenticatedUser(user) {
+  try {
+    const { data: roleData, error: roleError } = await supabaseClient
+      .from('USER_ROLES')
+      .select('role')
+      .eq('email', user.email)
+      .single();
+
+    if (roleError || !roleData) {
+      await logAuditEvent('ACCESS_DENIED', { email: user.email, reason: 'no_role_assigned' });
+      showError('🚫 Akses ditolak. Hubungi administrator.');
+      await supabaseClient.auth.signOut();
+      hideLoading();
+      return;
+    }
+
+    currentUser = {
+      email: user.email,
+      name: user.user_metadata?.full_name || user.email.split('@')[0],
+      avatar: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=667eea&color=fff`,
+      role: roleData.role
+    };
+
+    await logAuditEvent('LOGIN_SUCCESS', { email: user.email, role: roleData.role });
+    loginAttempts = 0;
+    startSessionTimer();
+    showDashboard();
+  } catch (err) {
+    console.error('Error getting user role:', err);
+    await logAuditEvent('AUTH_ERROR', { error: err.message });
+    showError('❌ Terjadi kesalahan. Silakan coba lagi.');
+    hideLoading();
+  }
+}
+
+function showDashboard() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('dashboardPage').style.display = 'block';
+
+  document.getElementById('userBadge').textContent = currentUser.role;
+  document.getElementById('usernameDisplay').textContent = currentUser.name;
+  document.getElementById('userAvatar').src = currentUser.avatar;
+
+  if (currentUser.role !== 'MASTER') {
+    document.getElementById('uploadBtn').style.display = 'none';
+    document.getElementById('projectBtn').style.display = 'none';
+  } else {
+    document.getElementById('projectBtn').style.display = 'inline-block';
+  }
+
+  loadAll();
+}
+
+/* =====================================================
+   DATA LOADING
+===================================================== */
 async function loadAll() {
   showLoading("Memuat data...");
   try {
-    // Load projects & PR data dari Supabase
     const [projResult, dataResult] = await Promise.all([
       supabaseClient.from("PROJECT_CONFIG").select("*").order('order_index', { ascending: true }),
       supabaseClient.from("PR LIST").select("*")
@@ -1110,14 +1123,12 @@ async function loadAll() {
     if (projResult.error) throw new Error("Projects: " + projResult.error.message);
     if (dataResult.error) throw new Error("Data: " + dataResult.error.message);
 
-    // Parse project list
     projectList = (projResult.data || []).map(p => ({
       key: p.key,
       label: p.label,
       aliases: p.aliases ? JSON.parse(p.aliases) : []
     }));
 
-    // Parse PR data
     rows = dataResult.data
       .map(r => {
         const o = {};
@@ -1130,8 +1141,8 @@ async function loadAll() {
       );
 
     const periodText = getPRDatePeriod(rows);
-    document.getElementById("periodInfo").textContent = periodText ? periodText : "";
-    
+    document.getElementById("periodInfo").textContent = periodText || "";
+
     await displayLastUpdatedFromSupabase();
 
     Chart.register(ChartDataLabels);
@@ -1139,17 +1150,19 @@ async function loadAll() {
 
   } catch (err) {
     console.error(err);
+    await logAuditEvent('DATA_LOAD_ERROR', { error: err.message });
     document.getElementById("chartContainer").innerHTML =
-      `<div style="color:red;padding:20px;">❌ Gagal memuat data: ${err.message}</div>`;
+      `<div style="color:red;padding:20px;">❌ Gagal memuat data: ${escHtml(err.message)}</div>`;
   } finally {
     hideLoading();
   }
 }
 
-/* =========================
-   PROJECT MANAGER MODAL
-========================= */
+/* =====================================================
+   PROJECT MANAGEMENT
+===================================================== */
 function openProjectModal() {
+  logAuditEvent('OPEN_PROJECT_MANAGER');
   renderProjectList();
   document.getElementById("projectModal").classList.add("open");
 }
@@ -1161,11 +1174,7 @@ function closeProjectModal() {
 function renderProjectList() {
   const container = document.getElementById("projectList");
   container.innerHTML = "";
-
-  projectList.forEach((p, idx) => {
-    container.appendChild(createProjectRow(p, idx));
-  });
-
+  projectList.forEach((p, idx) => container.appendChild(createProjectRow(p, idx)));
   initDragDrop();
 }
 
@@ -1174,7 +1183,6 @@ function createProjectRow(p, idx) {
   item.className = "project-item";
   item.dataset.idx = idx;
   item.draggable = true;
-
   item.innerHTML = `
     <div class="drag-handle" title="Drag untuk mengatur urutan">☰</div>
     <div class="project-fields">
@@ -1188,7 +1196,7 @@ function createProjectRow(p, idx) {
       </div>
       <div>
         <div class="field-label">ALIASES (nilai BIIL APPROVAL lain yang dikelompokkan ke project ini)</div>
-        <textarea class="proj-aliases" placeholder="Satu alias per baris">${(p.aliases || []).join("\n")}</textarea>
+        <textarea class="proj-aliases" placeholder="Satu alias per baris">${escHtml((p.aliases || []).join("\n"))}</textarea>
         <div class="alias-hint">💡 Pisahkan dengan baris baru. Kosongkan jika tidak ada alias.</div>
       </div>
     </div>
@@ -1210,6 +1218,7 @@ function addProjectRow() {
 
 function removeProjectRow(idx) {
   if (!confirm("Hapus project ini?")) return;
+  logAuditEvent('PROJECT_DELETE', { project: projectList[idx].label });
   projectList.splice(idx, 1);
   renderProjectList();
 }
@@ -1238,54 +1247,37 @@ function collectProjectsFromForm() {
 
 async function saveProjects() {
   const projects = collectProjectsFromForm();
-
-  // Validasi
   for (const p of projects) {
-    if (!p.key) {
-      alert("Ada project yang KEY-nya kosong. Harap isi semua KEY.");
-      return;
-    }
-    if (!p.label) {
-      alert(`Project dengan key "${p.key}" belum punya label. Harap isi LABEL.`);
-      return;
-    }
+    if (!p.key) { alert("Ada project yang KEY-nya kosong. Harap isi semua KEY."); return; }
+    if (!p.label) { alert(`Project dengan key "${p.key}" belum punya label. Harap isi LABEL.`); return; }
   }
 
   showLoading("Menyimpan konfigurasi project...");
   try {
-    // Hapus semua project lama
     await supabaseClient.from("PROJECT_CONFIG").delete().neq('key', '');
-
-    // Insert project baru dengan urutan
     const insertData = projects.map((p, idx) => ({
       key: p.key,
       label: p.label,
       aliases: JSON.stringify(p.aliases),
       order_index: idx
     }));
-
-    const { error } = await supabaseClient
-      .from("PROJECT_CONFIG")
-      .insert(insertData);
-
+    const { error } = await supabaseClient.from("PROJECT_CONFIG").insert(insertData);
     if (error) throw new Error(error.message);
 
+    await logAuditEvent('PROJECT_SAVE', { count: projects.length });
     projectList = projects;
     closeProjectModal();
     hideLoading();
-
-    // Re-render chart dengan config baru
     Chart.register(ChartDataLabels);
     renderCharts();
-
     alert(`✅ ${projects.length} project berhasil disimpan!`);
   } catch (err) {
     hideLoading();
+    await logAuditEvent('PROJECT_SAVE_ERROR', { error: err.message });
     alert("❌ Gagal menyimpan: " + err.message);
   }
 }
 
-/* ── Drag & Drop reorder ─────────────────────────────────── */
 function initDragDrop() {
   const list = document.getElementById("projectList");
   const items = list.querySelectorAll(".project-item");
@@ -1310,10 +1302,8 @@ function initDragDrop() {
     item.addEventListener("drop", function (e) {
       e.preventDefault();
       if (this === dragSrc) return;
-
       const srcIdx = parseInt(dragSrc.dataset.idx);
       const destIdx = parseInt(this.dataset.idx);
-
       const moved = projectList.splice(srcIdx, 1)[0];
       projectList.splice(destIdx, 0, moved);
       renderProjectList();
@@ -1321,15 +1311,21 @@ function initDragDrop() {
   });
 }
 
-/* =========================
+/* =====================================================
    UTILITY FUNCTIONS
-========================= */
+===================================================== */
 function normalizeKey(key) {
   return key.toString().toUpperCase().replace(/\s+/g, " ").trim();
 }
 
 function escHtml(str) {
-  return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return (str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/\//g, "&#x2F;");
 }
 
 function formatNumber(value) {
@@ -1341,51 +1337,29 @@ function formatNumber(value) {
 
 function formatLastUpdated(timestamp) {
   if (!timestamp) return '';
-  
   const date = new Date(timestamp);
   const options = {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Jakarta'
+    hour: '2-digit', minute: '2-digit', day: 'numeric',
+    month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta'
   };
-  
   const formatter = new Intl.DateTimeFormat('en-GB', options);
   const parts = formatter.formatToParts(date);
-  
-  const time = parts.filter(p => p.type === 'hour' || p.type === 'minute' || p.type === 'literal' && p.value === ':')
-    .map(p => p.value).join('');
+  const time = parts.filter(p => p.type === 'hour' || p.type === 'minute' || (p.type === 'literal' && p.value === ':')).map(p => p.value).join('');
   const day = parts.find(p => p.type === 'day').value;
   const month = parts.find(p => p.type === 'month').value;
   const year = parts.find(p => p.type === 'year').value;
-  
   return `Last updated: ${time} · ${day} ${month} ${year}`;
 }
 
 async function displayLastUpdatedFromSupabase() {
   const element = document.getElementById('lastUpdated');
   if (!element) return;
-  
   try {
     const { data, error } = await supabaseClient
-      .from('SYSTEM_INFO')
-      .select('value')
-      .eq('key', 'last_updated')
-      .single();
-    
-    if (error) {
-      console.log('No last_updated info in Supabase:', error.message);
-      return;
-    }
-    
-    if (data && data.value) {
-      element.textContent = formatLastUpdated(data.value);
-    }
-  } catch (err) {
-    console.log('Error fetching last_updated:', err);
-  }
+      .from('SYSTEM_INFO').select('value').eq('key', 'last_updated').single();
+    if (error) { console.log('No last_updated info:', error.message); return; }
+    if (data && data.value) element.textContent = formatLastUpdated(data.value);
+  } catch (err) { console.log('Error fetching last_updated:', err); }
 }
 
 function parsePRDate(value) {
@@ -1395,36 +1369,24 @@ function parsePRDate(value) {
 }
 
 function formatDateID(date) {
-  return date.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
+  return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function getPRDatePeriod(rows) {
-  const dates = rows
-    .map(r => parsePRDate(r["PR DATE"]))
-    .filter(d => d !== null);
-
+  const dates = rows.map(r => parsePRDate(r["PR DATE"])).filter(d => d !== null);
   if (!dates.length) return null;
-
   const min = new Date(Math.min(...dates));
   const max = new Date(Math.max(...dates));
-
   return `Periode ${formatDateID(min)} - ${formatDateID(max)}`;
 }
 
 function detectProject(bill) {
   if (!bill) return null;
   const text = bill.toString().toUpperCase().replace(/\s+/g, " ");
-
   for (const p of projectList) {
-    // Cek aliases dulu
     for (const alias of (p.aliases || [])) {
       if (text.includes(alias.toUpperCase())) return p.key;
     }
-    // Cek key utama
     if (text.includes(p.key.toUpperCase())) return p.key;
   }
   return null;
@@ -1463,23 +1425,19 @@ function extractBiilNumber(biilApproval) {
   return match ? match[1] : biilApproval;
 }
 
-/* =========================
-   PIE CHART
-========================= */
+/* =====================================================
+   CHART DATA BUILDERS
+===================================================== */
 function buildPieData(projectKey) {
   const map = {};
-
   rows.forEach(r => {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
     if (!r["PR NO"] || !r["STATUS PR"]) return;
-
     const status = r["STATUS PR"];
     if (!map[status]) map[status] = new Set();
     map[status].add(r["PR NO"]);
   });
-
   const orderedStatus = STATUS_PR;
-
   return {
     labels: orderedStatus,
     data: orderedStatus.map(s => map[s] ? map[s].size : 0),
@@ -1487,33 +1445,23 @@ function buildPieData(projectKey) {
   };
 }
 
-/* =========================
-   BAR CHART
-========================= */
 function buildDelayData(projectKey) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const statusMap = {};
 
   rows.forEach(r => {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return;
     if (!r["PR NO"] || !r["STATUS PR"]) return;
-
     if (r["STATUS PR"] === "RECEIVED") return;
-
     const d = parseProcessDate(r["PROCESS DATE"]);
     if (!d) return;
-
     let diff = Math.floor((today - d) / 86400000);
     if (diff <= 0) return;
-
     if (diff > 14) diff = 14;
-
     const status = r["STATUS PR"];
     if (!statusMap[status]) statusMap[status] = {};
     if (!statusMap[status][diff]) statusMap[status][diff] = [];
-
     if (!statusMap[status][diff].includes(r["PR NO"])) {
       statusMap[status][diff].push(r["PR NO"]);
     }
@@ -1521,18 +1469,12 @@ function buildDelayData(projectKey) {
 
   const labels = getOrderedBarStatus(Object.keys(statusMap));
   const datasets = [];
-
   labels.forEach(status => {
     if (!statusMap[status]) return;
-    const delays = Object.keys(statusMap[status])
-      .map(Number)
-      .sort((a, b) => a - b);
-
+    const delays = Object.keys(statusMap[status]).map(Number).sort((a, b) => a - b);
     let prev = 0;
-
     delays.forEach(delay => {
       const delta = delay - prev;
-
       datasets.push({
         label: status,
         data: labels.map(l => l === status ? delta : 0),
@@ -1540,36 +1482,31 @@ function buildDelayData(projectKey) {
         prList: statusMap[status][delay],
         backgroundColor: getDelayColor(delay)
       });
-
       prev = delay;
     });
   });
-
   return { labels, datasets };
 }
 
+/* =====================================================
+   DETAIL TABLE
+===================================================== */
 function showDetailTable(projectKey, status, prList, delay = null) {
   closeAllDetails();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const filtered = rows.filter(r => {
     if (detectProject(r["BIIL APPROVAL"]) !== projectKey) return false;
     if (r["STATUS PR"] !== status) return false;
     if (!prList.includes(r["PR NO"])) return false;
-
     if (delay !== null) {
       const d = parseProcessDate(r["PROCESS DATE"]);
       if (!d) return false;
-
-      const diff = Math.floor((today - d) / 86400000);
-      
-      let actualDiff = diff;
+      let actualDiff = Math.floor((today - d) / 86400000);
       if (actualDiff > 14) actualDiff = 14;
-      
       if (actualDiff !== delay) return false;
     }
-
     return true;
   });
 
@@ -1580,7 +1517,7 @@ function renderDetailTable(data, projectKey, status) {
   const slotId = `detail-slot-${projectKey.replace(/[^a-zA-Z0-9]/g, "_")}`;
   const slot = document.getElementById(slotId);
   if (!slot) return;
-  
+
   slot.innerHTML = "";
   slot.style.display = "block";
 
@@ -1599,37 +1536,24 @@ function renderDetailTable(data, projectKey, status) {
     <div class="card" id="detailTableWrap">
       <h2>
         ${escHtml(projLabel)}<br>
-        Status: ${status}<br>
+        Status: ${escHtml(status)}<br>
         Total Baris: ${data.length}
-        ${totalAmount > 0 ? `&nbsp;|&nbsp; Total Amount: ${currDisplay} ${formatNumber(totalAmount)}` : ''}
+        ${totalAmount > 0 ? `&nbsp;|&nbsp; Total Amount: ${escHtml(currDisplay)} ${formatNumber(totalAmount)}` : ''}
       </h2>
-
       <div style="overflow:auto; max-height:400px;">
-        <table border="1" cellpadding="6" cellspacing="0"
-          style="font-size:12px; white-space:nowrap;">
-          <thead>
-            <tr>
-              ${DETAIL_COLUMNS.map(c => `<th>${c}</th>`).join("")}
-            </tr>
-          </thead>
-          <tbody>
-  `;
+        <table border="1" cellpadding="6" cellspacing="0" style="font-size:12px; white-space:nowrap;">
+          <thead><tr>${DETAIL_COLUMNS.map(c => `<th>${escHtml(c)}</th>`).join("")}</tr></thead>
+          <tbody>`;
 
   data.forEach(r => {
     html += `<tr>`;
     DETAIL_COLUMNS.forEach(c => {
       const isNum = NUMBER_COLUMNS.has(c);
       let val = r[c] ?? "";
-      
-      if (c === "BIIL APPROVAL" && val) {
-        val = extractBiilNumber(val);
-      }
-      
+      if (c === "BIIL APPROVAL" && val) val = extractBiilNumber(val);
       let displayVal = val;
-      if ((c === "PRICE" || c === "AMOUNT") && val !== "") {
-        displayVal = formatNumber(val);
-      }
-      html += `<td${isNum ? ' class="col-number"' : ''}>${displayVal}</td>`;
+      if ((c === "PRICE" || c === "AMOUNT") && val !== "") displayVal = formatNumber(val);
+      html += `<td${isNum ? ' class="col-number"' : ''}>${escHtml(String(displayVal))}</td>`;
     });
     html += `</tr>`;
   });
@@ -1637,7 +1561,7 @@ function renderDetailTable(data, projectKey, status) {
   html += `<tr style="font-weight:bold; background:#f0f0f0;">`;
   DETAIL_COLUMNS.forEach(c => {
     if (c === "ITEM NAME") {
-      html += `<td colspan="1"><strong>TOTAL</strong></td>`;
+      html += `<td><strong>TOTAL</strong></td>`;
     } else if (c === "QTY") {
       const totalQty = data.reduce((sum, r) => {
         const q = parseFloat(r["QTY"]);
@@ -1650,23 +1574,14 @@ function renderDetailTable(data, projectKey, status) {
       html += `<td></td>`;
     }
   });
-  html += `</tr>`;
+  html += `</tr></tbody></table></div></div>`;
 
-  html += `
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-
-  slot.appendChild(
-    document.createRange().createContextualFragment(html)
-  );
+  slot.appendChild(document.createRange().createContextualFragment(html));
 }
 
-/* =========================
-   RENDER CHARTS
-========================= */
+/* =====================================================
+   CHART RENDERING
+===================================================== */
 function clearCharts() {
   charts.forEach(c => c.destroy());
   charts = [];
@@ -1681,26 +1596,25 @@ function renderCharts() {
     container.innerHTML = `
       <div style="text-align:center;padding:40px;color:#888;">
         <p style="font-size:18px;">⚙️ Belum ada project yang dikonfigurasi.</p>
-        ${currentUser.role === "MASTER" ? '<p>Klik tombol <strong>⚙️ Manage Project</strong> untuk menambahkan project.</p>' : '<p>Hubungi admin untuk mengkonfigurasi project.</p>'}
+        ${currentUser.role === "MASTER"
+          ? '<p>Klik tombol <strong>⚙️ Manage Project</strong> untuk menambahkan project.</p>'
+          : '<p>Hubungi admin untuk mengkonfigurasi project.</p>'}
       </div>`;
     return;
   }
 
   projectList.forEach(proj => {
     const key = proj.key;
-
     const row = document.createElement("div");
     row.className = "row";
 
     const pieCard = document.createElement("div");
     pieCard.className = "card";
-
     const barCard = document.createElement("div");
     barCard.className = "card";
 
     const pieTitle = document.createElement("h2");
     pieTitle.textContent = proj.label;
-
     const barTitle = document.createElement("h2");
     barTitle.textContent = "PR Delay Status (Days)";
 
@@ -1709,7 +1623,6 @@ function renderCharts() {
 
     pieCard.appendChild(pieTitle);
     pieCard.appendChild(pieCanvas);
-
     const legendDiv = document.createElement("div");
     legendDiv.className = "pie-legend";
     pieCard.appendChild(legendDiv);
@@ -1731,9 +1644,7 @@ function renderCharts() {
     const bar = buildDelayData(key);
 
     if (pie.data.length) {
-      const colors = pie.labels.map((_, i) =>
-        `hsl(${(i * 360) / pie.labels.length}, 65%, 55%)`
-      );
+      const colors = pie.labels.map((_, i) => `hsl(${(i * 360) / pie.labels.length}, 65%, 55%)`);
 
       const pieChart = new Chart(pieCanvas, {
         type: "pie",
@@ -1754,16 +1665,13 @@ function renderCharts() {
             datalabels: {
               color: "#fff",
               font: { weight: "bold", size: 12 },
-              formatter: (value, ctx) => value === 0 ? "" : value
+              formatter: (value) => value === 0 ? "" : value
             },
             tooltip: {
               callbacks: {
                 label: ctx => {
                   const prs = ctx.dataset.prMap[ctx.dataIndex];
-                  return [
-                    `Total PR: ${prs.length}`,
-                    `PR: ${prs.join(", ")}`
-                  ];
+                  return [`Total PR: ${prs.length}`, `PR: ${prs.join(", ")}`];
                 }
               }
             }
@@ -1771,9 +1679,7 @@ function renderCharts() {
           onClick: (evt, elements) => {
             if (!elements.length) return;
             const idx = elements[0].index;
-            const status = pie.labels[idx];
-            const prList = pie.prMap[idx];
-            showDetailTable(key, status, prList);
+            showDetailTable(key, pie.labels[idx], pie.prMap[idx]);
           }
         }
       });
@@ -1783,18 +1689,13 @@ function renderCharts() {
       pie.labels.forEach((label, i) => {
         const item = document.createElement("div");
         item.className = "pie-legend-item";
-
         const colorBox = document.createElement("div");
         colorBox.className = "pie-legend-color";
         colorBox.style.background = colors[i];
-
         const text = document.createElement("span");
-        if (label === "RECEIVED") {
-          text.textContent = `${label} (${pie.data[i]}) - CLOSED`;
-        } else {
-          text.textContent = `${label} (${pie.data[i]})`;
-        }
-
+        text.textContent = label === "RECEIVED"
+          ? `${label} (${pie.data[i]}) - CLOSED`
+          : `${label} (${pie.data[i]})`;
         item.appendChild(colorBox);
         item.appendChild(text);
         legendDiv.appendChild(item);
@@ -1804,21 +1705,16 @@ function renderCharts() {
     if (bar.datasets.length) {
       charts.push(new Chart(barCanvas, {
         type: "bar",
-        data: {
-          labels: bar.labels,
-          datasets: bar.datasets
-        },
+        data: { labels: bar.labels, datasets: bar.datasets },
         options: {
           responsive: true,
           maintainAspectRatio: true,
           indexAxis: "y",
           onClick: (evt, elements) => {
             if (!elements.length) return;
-            
             const el = elements[0];
             const dataset = bar.datasets[el.datasetIndex];
             const status = bar.labels[el.index];
-            
             showDetailTable(key, status, dataset.prList, dataset.delayValue);
           },
           scales: {
@@ -1839,11 +1735,7 @@ function renderCharts() {
               callbacks: {
                 label: ctx => {
                   const d = ctx.dataset;
-                  return [
-                    `Delay: ${d.delayValue} days`,
-                    `Total PR: ${d.prList.length}`,
-                    `PR: ${d.prList.join(", ")}`
-                  ];
+                  return [`Delay: ${d.delayValue} days`, `Total PR: ${d.prList.length}`, `PR: ${d.prList.join(", ")}`];
                 }
               }
             }
@@ -1860,9 +1752,9 @@ function renderCharts() {
   });
 }
 
-/* =========================
-   CSV/EXCEL UPLOAD HANDLER
-========================= */
+/* =====================================================
+   FILE UPLOAD HANDLER
+===================================================== */
 document.getElementById('fileInput').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1874,7 +1766,7 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
 
     const ext = file.name.split(".").pop().toLowerCase();
     let data;
-    
+
     if (ext === "csv") {
       data = await parseCSV(file);
     } else if (ext === "xlsx" || ext === "xls") {
@@ -1883,176 +1775,123 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
       throw new Error("Format tidak didukung. Gunakan CSV atau Excel.");
     }
 
-    if (data.length === 0) {
-      throw new Error('File kosong atau format tidak valid');
-    }
+    if (data.length === 0) throw new Error('File kosong atau format tidak valid');
 
-    status.textContent = `📊 ${data.length} baris terbaca. Menghapus SEMUA data lama...`;
+    status.textContent = `📊 ${data.length} baris terbaca. Menghapus data lama...`;
     showLoading(`Mengupload ${data.length} baris...`);
-    
-    console.log('Sample data:', data[0]);
-    console.log('Kolom:', Object.keys(data[0]));
-    
+
+    await logAuditEvent('UPLOAD_START', { rows: data.length, filename: file.name });
+
+    // === DELETE OLD DATA (3-method fallback) ===
     try {
       let deleteSuccess = false;
-      
+
+      // Method 1: RPC truncate
       try {
         const { error: rpcError } = await supabaseClient.rpc('truncate_pr_list');
-        
         if (!rpcError) {
           console.log('✅ Truncate via RPC success');
           deleteSuccess = true;
-        } else {
-          console.log('RPC truncate not available:', rpcError.message);
         }
       } catch (rpcErr) {
         console.log('RPC method not available');
       }
-      
+
+      // Method 2: delete with gte filter
       if (!deleteSuccess) {
-        const { error: deleteError1 } = await supabaseClient
-          .from('PR LIST')
-          .delete()
-          .gte('PR NO', 0);
-        
+        const { error: deleteError1 } = await supabaseClient.from('PR LIST').delete().gte('PR NO', 0);
         if (!deleteError1) {
-          console.log('✅ Delete method 1 success (gte 0)');
+          console.log('✅ Delete method 2 success');
           deleteSuccess = true;
         }
       }
-      
+
+      // Method 3: fetch all then batch delete
       if (!deleteSuccess) {
-        const { error: deleteError2 } = await supabaseClient
-          .from('PR LIST')
-          .delete()
-          .not('PR NO', 'is', null);
-        
-        if (!deleteError2) {
-          console.log('✅ Delete method 2 success (not null)');
-          deleteSuccess = true;
-        }
-      }
-      
-      if (!deleteSuccess) {
-        console.log('Trying fetch and delete method...');
-        const { data: allRows, error: fetchError } = await supabaseClient
-          .from('PR LIST')
-          .select('PR NO');
-        
+        const { data: allRows, error: fetchError } = await supabaseClient.from('PR LIST').select('PR NO');
         if (!fetchError && allRows && allRows.length > 0) {
           const batchSize = 500;
           for (let i = 0; i < allRows.length; i += batchSize) {
             const batch = allRows.slice(i, i + batchSize);
-            const prNums = batch.map(r => r['PR NO']);
-            
-            await supabaseClient
-              .from('PR LIST')
-              .delete()
-              .in('PR NO', prNums);
-            
+            await supabaseClient.from('PR LIST').delete().in('PR NO', batch.map(r => r['PR NO']));
             status.textContent = `🗑️ Menghapus: ${Math.min(i + batchSize, allRows.length)}/${allRows.length}...`;
           }
-          console.log(`✅ Deleted ${allRows.length} rows via fetch method`);
+          console.log(`✅ Deleted ${allRows.length} rows via batch method`);
         }
       }
-      
+
       status.textContent = `✅ Data lama terhapus. Uploading ${data.length} baris baru...`;
-      
-    } catch (err) {
-      throw new Error('Gagal menghapus data lama: ' + err.message);
+
+    } catch (deleteErr) {
+      throw new Error('Gagal menghapus data lama: ' + deleteErr.message);
     }
 
+    // === INSERT NEW DATA ===
     const batchSize = 1000;
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize);
-      const { error: insertError } = await supabaseClient
-        .from('PR LIST')
-        .insert(batch);
-
+      const { error: insertError } = await supabaseClient.from('PR LIST').insert(batch);
       if (insertError) throw insertError;
-      
       status.textContent = `📤 Upload: ${Math.min(i + batchSize, data.length)}/${data.length}...`;
+      showLoading(`Mengupload data... ${Math.min(i + batchSize, data.length)}/${data.length}`);
     }
+
+    // === UPDATE TIMESTAMP ===
+    const timestamp = new Date().toISOString();
+    await supabaseClient.from('SYSTEM_INFO').upsert(
+      { key: 'last_updated', value: timestamp },
+      { onConflict: 'key' }
+    );
+
+    await logAuditEvent('UPLOAD_SUCCESS', { rows: data.length, filename: file.name });
 
     status.textContent = `✅ BERHASIL! ${data.length} data berhasil diupdate. Merefresh dashboard...`;
     status.style.color = 'green';
-    
-    const timestamp = new Date().toISOString();
-    
-    try {
-      await supabaseClient
-        .from('SYSTEM_INFO')
-        .upsert({ 
-          key: 'last_updated', 
-          value: timestamp 
-        }, { 
-          onConflict: 'key' 
-        });
-      console.log('✅ Timestamp saved to Supabase');
-    } catch (err) {
-      console.log('Failed to save timestamp to Supabase:', err);
-    }
-
     hideLoading();
-    setTimeout(() => {
-      location.reload();
-    }, 2000);
+    setTimeout(() => location.reload(), 2000);
 
   } catch (err) {
     hideLoading();
-    status.textContent = `❌ ERROR: ${err.message}`;
+    await logAuditEvent('UPLOAD_ERROR', { error: err.message, filename: file?.name });
+    status.textContent = `❌ ERROR: ${escHtml(err.message)}`;
     status.style.color = 'red';
     console.error('Upload error:', err);
   }
-  
+
   e.target.value = '';
 });
 
+/* =====================================================
+   FILE PARSERS
+===================================================== */
 function parseCSV(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
     reader.onload = (e) => {
       try {
         let text = e.target.result;
-        
-        if (text.charCodeAt(0) === 0xFEFF) {
-          text = text.substring(1);
-        }
-        
+        // Strip BOM if present
+        if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
         const lines = text.split('\n').filter(line => line.trim());
-        
         if (lines.length < 2) {
           reject(new Error('CSV harus punya minimal header dan 1 baris data'));
           return;
         }
-
+        // Auto-detect delimiter
         const delimiter = lines[0].includes(';') ? ';' : ',';
-        console.log(`Delimiter detected: "${delimiter}"`);
-
-        const headers = lines[0].split(delimiter).map(h => 
-          h.trim().replace(/^"|"$/g, '')
-        );
-
-        console.log('CSV Headers:', headers);
-
+        const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+        const NUMERIC_COLS = new Set(["PRICE", "AMOUNT", "QTY"]);
         const data = [];
+
         for (let i = 1; i < lines.length; i++) {
           const values = parseCSVLine(lines[i], delimiter);
-          
-          if (values.length !== headers.length) {
-            console.warn(`Baris ${i + 1} skip: ${values.length} kolom, expected ${headers.length}`);
-            continue;
-          }
-
-          const NUMERIC_COLS = new Set(["PRICE", "AMOUNT", "QTY"]);
-
+          if (values.length !== headers.length) continue;
           const obj = {};
           headers.forEach((header, idx) => {
             let val = values[idx] === '' ? null : values[idx];
-            
             if (val !== null && NUMERIC_COLS.has(header.toUpperCase().trim())) {
               let cleaned = val.toString().trim();
+              // Handle ID number format: 1.000.000,50 → 1000000.50
               if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(cleaned)) {
                 cleaned = cleaned.replace(/\./g, '').replace(',', '.');
               } else {
@@ -2061,19 +1900,13 @@ function parseCSV(file) {
               const num = parseFloat(cleaned);
               val = isNaN(num) ? null : num;
             }
-            
             obj[header] = val;
           });
-          
           data.push(obj);
         }
-
         resolve(data);
-      } catch (err) {
-        reject(err);
-      }
+      } catch (err) { reject(err); }
     };
-    
     reader.onerror = () => reject(new Error('Gagal membaca file'));
     reader.readAsText(file);
   });
@@ -2083,10 +1916,8 @@ function parseCSVLine(line, delimiter = ',') {
   const result = [];
   let current = '';
   let inQuotes = false;
-  
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === delimiter && !inQuotes) {
@@ -2096,7 +1927,6 @@ function parseCSVLine(line, delimiter = ',') {
       current += char;
     }
   }
-  
   result.push(current.trim());
   return result.map(v => v.replace(/^"|"$/g, ''));
 }
@@ -2109,23 +1939,16 @@ function parseExcel(file) {
         const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
         const sh = wb.Sheets[wb.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sh, { raw: false, dateNF: "yyyy-mm-dd" });
-        
-        if (!json.length) {
-          reject(new Error("Sheet Excel kosong"));
-          return;
-        }
-        
+        if (!json.length) { reject(new Error("Sheet Excel kosong")); return; }
         const NUMERIC = new Set(["PRICE", "AMOUNT", "QTY"]);
         const data = json.map(row => {
           const obj = {};
           Object.keys(row).forEach(k => {
             let val = row[k];
-            if (val === "" || val === undefined) {
-              obj[k] = null;
-              return;
-            }
+            if (val === "" || val === undefined) { obj[k] = null; return; }
             if (NUMERIC.has(k.toUpperCase().trim())) {
-              let c = val.toString().trim().replace(/\./g, "").replace(",", ".");
+              // Remove thousand separators (.) and replace decimal comma
+              const c = val.toString().trim().replace(/\./g, "").replace(",", ".");
               const n = parseFloat(c);
               obj[k] = isNaN(n) ? null : n;
             } else {
@@ -2135,9 +1958,7 @@ function parseExcel(file) {
           return obj;
         });
         resolve(data);
-      } catch (err) {
-        reject(err);
-      }
+      } catch (err) { reject(err); }
     };
     reader.onerror = () => reject(new Error("Gagal membaca file Excel"));
     reader.readAsArrayBuffer(file);
