@@ -3,7 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://api.ipify.org; img-src 'self' data: https: blob:; font-src 'self' data:;">
+  <meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline'
+    https://cdn.jsdelivr.net
+    https://cdnjs.cloudflare.com
+    https://www.gstatic.com
+    https://apis.google.com;
+  style-src 'self' 'unsafe-inline';
+  connect-src 'self'
+    https://*.googleapis.com
+    https://*.firebaseio.com
+    wss://*.firebaseio.com
+    https://*.cloudfunctions.net
+    https://api.ipify.org
+    https://cdn.jsdelivr.net
+    https://www.gstatic.com
+    https://securetoken.googleapis.com
+    https://identitytoolkit.googleapis.com;
+  img-src 'self' data: https: blob:;
+  font-src 'self' data:;
+  frame-src 'self'
+    https://accounts.google.com
+    https://pr-po-control.firebaseapp.com;
+">
   <title>Dashboard Control Process PR</title>
 
   <!-- Chart.js -->
