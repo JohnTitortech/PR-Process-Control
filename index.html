@@ -372,7 +372,7 @@ let sessionWarningShown = false;
 /* =====================================================
    APPLICATION CONSTANTS
 ===================================================== */
-const ACTIVE_USER = "MILA";
+const ACTIVE_USERS = new Set(["MILA", "MONICA"]);
 
 const STATUS_PR = [
   "NEW PR","APPROVE CL","RECEIVED PURCHASING","INPUT PRICE","APPROVE MANAGER",
@@ -649,7 +649,7 @@ async function loadAll() {
       Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
       return o;
     }).filter(r =>
-      r["USER"] === ACTIVE_USER &&
+      ACTIVE_USERS.has(r["USER"]) &&
       !EXCLUDED_STATUS.has(r["STATUS PR"])
     );
 
