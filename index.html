@@ -629,7 +629,6 @@ async function loadAll() {
       r["USER"] === ACTIVE_USER &&
       !EXCLUDED_STATUS.has(r["STATUS PR"])
     );
-    console.log("FIRESTORE ROW 0:", JSON.stringify(rows[0]));
     const periodText = getPRDatePeriod(rows);
     document.getElementById("periodInfo").textContent = periodText || "";
 
@@ -987,9 +986,6 @@ function renderDetailTable(data, projectKey, status) {
         <table border="1" cellpadding="6" cellspacing="0" style="font-size:12px;white-space:nowrap;">
           <thead><tr>${DETAIL_COLUMNS.map(c => `<th>${escHtml(c)}</th>`).join("")}</tr></thead>
           <tbody>`;
-  
-  console.log("SAMPLE PRICE:", rows[0]?.["PRICE"], typeof rows[0]?.["PRICE"]);
-  console.log("SAMPLE AMOUNT:", rows[0]?.["AMOUNT"], typeof rows[0]?.["AMOUNT"]);
 
   data.forEach(r => {
     html += `<tr>`;
@@ -1278,10 +1274,6 @@ function parseExcel(file) {
           raw: false,
           dateNF: "yyyy-mm-dd"
         });
-
-        // DEBUG — hapus setelah selesai
-        console.log("=== ROW 0 RAW ===", JSON.stringify(jsonRaw[0]));
-        console.log("=== ROW 0 FMT ===", JSON.stringify(jsonFmt[0]));
 
         if (!jsonRaw.length) {
           reject(new Error("Sheet Excel kosong"));
