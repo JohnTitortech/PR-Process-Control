@@ -629,7 +629,7 @@ async function loadAll() {
       r["USER"] === ACTIVE_USER &&
       !EXCLUDED_STATUS.has(r["STATUS PR"])
     );
-
+    console.log("FIRESTORE ROW 0:", JSON.stringify(rows[0]));
     const periodText = getPRDatePeriod(rows);
     document.getElementById("periodInfo").textContent = periodText || "";
 
