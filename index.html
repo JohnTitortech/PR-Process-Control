@@ -3,30 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="
-  default-src 'self';
-  script-src 'self' 'unsafe-inline'
-    https://cdn.jsdelivr.net
-    https://cdnjs.cloudflare.com
-    https://www.gstatic.com
-    https://apis.google.com;
-  style-src 'self' 'unsafe-inline';
-  connect-src 'self'
-    https://*.googleapis.com
-    https://*.firebaseio.com
-    wss://*.firebaseio.com
-    https://*.cloudfunctions.net
-    https://api.ipify.org
-    https://cdn.jsdelivr.net
-    https://www.gstatic.com
-    https://securetoken.googleapis.com
-    https://identitytoolkit.googleapis.com;
-  img-src 'self' data: https: blob:;
-  font-src 'self' data:;
-  frame-src 'self'
-    https://accounts.google.com
-    https://pr-po-control.firebaseapp.com;
-">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://api.ipify.org; img-src 'self' data: https: blob:; font-src 'self' data:;">
   <title>Dashboard Control Process PR</title>
 
   <!-- Chart.js -->
@@ -372,7 +349,7 @@ let sessionWarningShown = false;
 /* =====================================================
    APPLICATION CONSTANTS
 ===================================================== */
-const ACTIVE_USERS = new Set(["MILA", "MONICA"]);
+const ACTIVE_USER = "MILA";
 
 const STATUS_PR = [
   "NEW PR","APPROVE CL","RECEIVED PURCHASING","INPUT PRICE","APPROVE MANAGER",
@@ -382,7 +359,7 @@ const STATUS_PR = [
 ];
 
 const EXCLUDED_STATUS = new Set([
-  "NOT APPROVE CL","NOT RECEIVED PURCHASING","NOT APPROVE MANAJER","NOT APPROVE GM",
+  "NOT APPROVE CL","NOT RECEIVE PURCHASING","NOT APPROVE MANAJER","NOT APPROVE GM",
   "NOT APPROVE FGM","NOT APPROVE CL COST CONTROL","NOT APPROVE MANAGER COST CONTROL",
   "PO CANCEL","NOT APPROVE CL PURCHASING","NOT APPROVE MANAGER PURCHASING",
   "NOT APPROVE GM PURCHASING","NOT APPROVE FGM PURCHASING","DELETE PR"
@@ -649,7 +626,7 @@ async function loadAll() {
       Object.keys(r).forEach(k => o[normalizeKey(k)] = r[k]);
       return o;
     }).filter(r =>
-      ACTIVE_USERS.has(r["USER"]) &&
+      r["USER"] === ACTIVE_USER &&
       !EXCLUDED_STATUS.has(r["STATUS PR"])
     );
 
@@ -1286,26 +1263,92 @@ function parseExcel(file) {
     const reader = new FileReader();
     reader.onload = e => {
       try {
-        const wb   = XLSX.read(e.target.result, { type:"array", cellDates:true });
-        const sh   = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sh, { raw:false, dateNF:"yyyy-mm-dd" });
-        if (!json.length) { reject(new Error("Sheet Excel kosong")); return; }
-        const NUMERIC = new Set(["PRICE","AMOUNT","QTY"]);
-        const data = json.map(row => {
+        const wb = XLSX.read(e.target.result, {
+          type: "array",
+          cellDates: true
+        });
+        const sh = wb.Sheets[wb.SheetNames[0]];
+
+        // Baca dua kali: raw untuk angka, formatted untuk tanggal
+        const jsonRaw = XLSX.utils.sheet_to_json(sh, { raw: true });
+        const jsonFmt = XLSX.utils.sheet_to_json(sh, {
+          raw: false,
+          dateNF: "yyyy-mm-dd"
+        });
+
+        if (!jsonRaw.length) {
+          reject(new Error("Sheet Excel kosong"));
+          return;
+        }
+
+        const NUMERIC = new Set(["PRICE", "AMOUNT", "QTY"]);
+        const DATE_KEYS = new Set();
+
+        // Deteksi kolom tanggal dari baris pertama jsonFmt
+        // (nilai formatted berbentuk yyyy-mm-dd tapi raw-nya adalah number Excel serial)
+        if (jsonFmt.length > 0 && jsonRaw.length > 0) {
+          Object.keys(jsonFmt[0]).forEach(k => {
+            const rawVal = jsonRaw[0][k];
+            const fmtVal = jsonFmt[0][k];
+            // Serial date Excel: angka bulat di range tahun 1900-2200
+            if (
+              typeof rawVal === "number" &&
+              rawVal > 25569 && rawVal < 80000 &&
+              typeof fmtVal === "string" &&
+              /^\d{4}-\d{2}-\d{2}$/.test(fmtVal)
+            ) {
+              DATE_KEYS.add(k);
+            }
+          });
+        }
+
+        const data = jsonRaw.map((row, rowIdx) => {
           const obj = {};
           Object.keys(row).forEach(k => {
             let val = row[k];
-            if (val === "" || val === undefined) { obj[k] = null; return; }
-            if (NUMERIC.has(k.toUpperCase().trim())) {
-              const c = val.toString().trim().replace(/\./g,"").replace(",",".");
-              const n = parseFloat(c);
-              obj[k] = isNaN(n) ? null : n;
-            } else { obj[k] = val; }
+            if (val === "" || val === undefined || val === null) {
+              obj[k] = null;
+              return;
+            }
+            const KEY = k.toUpperCase().trim();
+
+            // Kolom numerik: ambil raw number langsung
+            if (NUMERIC.has(KEY)) {
+              if (typeof val === "number") {
+                obj[k] = val;
+              } else {
+                const c = val.toString().trim()
+                  .replace(/\./g, "").replace(",", ".");
+                const n = parseFloat(c);
+                obj[k] = isNaN(n) ? null : n;
+              }
+              return;
+            }
+
+            // Kolom tanggal: ambil versi formatted (yyyy-mm-dd)
+            if (DATE_KEYS.has(k)) {
+              obj[k] = (jsonFmt[rowIdx] && jsonFmt[rowIdx][k]) || null;
+              return;
+            }
+
+            // Sel Date object (dari cellDates:true)
+            if (val instanceof Date) {
+              const yyyy = val.getFullYear();
+              const mm = String(val.getMonth() + 1).padStart(2, "0");
+              const dd = String(val.getDate()).padStart(2, "0");
+              obj[k] = `${yyyy}-${mm}-${dd}`;
+              return;
+            }
+
+            obj[k] = val;
           });
           return obj;
         });
+
         resolve(data);
-      } catch(err) { reject(err); }
+      } catch (err) {
+        reject(err);
+      }
     };
     reader.onerror = () => reject(new Error("Gagal membaca file Excel"));
     reader.readAsArrayBuffer(file);
