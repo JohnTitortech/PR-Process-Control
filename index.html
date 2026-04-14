@@ -1276,6 +1276,10 @@ function parseExcel(file) {
           dateNF: "yyyy-mm-dd"
         });
 
+        // DEBUG — hapus setelah selesai
+        console.log("=== ROW 0 RAW ===", JSON.stringify(jsonRaw[0]));
+        console.log("=== ROW 0 FMT ===", JSON.stringify(jsonFmt[0]));
+
         if (!jsonRaw.length) {
           reject(new Error("Sheet Excel kosong"));
           return;
