@@ -987,6 +987,9 @@ function renderDetailTable(data, projectKey, status) {
         <table border="1" cellpadding="6" cellspacing="0" style="font-size:12px;white-space:nowrap;">
           <thead><tr>${DETAIL_COLUMNS.map(c => `<th>${escHtml(c)}</th>`).join("")}</tr></thead>
           <tbody>`;
+  
+  console.log("SAMPLE PRICE:", rows[0]?.["PRICE"], typeof rows[0]?.["PRICE"]);
+  console.log("SAMPLE AMOUNT:", rows[0]?.["AMOUNT"], typeof rows[0]?.["AMOUNT"]);
 
   data.forEach(r => {
     html += `<tr>`;
