@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com https://apis.google.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://api.ipify.org https://apis.google.com https://*.firebaseapp.com https://securetoken.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; frame-src https://accounts.google.com https://*.firebaseapp.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com https://apis.google.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://api.ipify.org https://apis.google.com https://*.firebaseapp.com https://securetoken.googleapis.com https://api.emailjs.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; frame-src https://accounts.google.com https://*.firebaseapp.com;">
   <title>Dashboard Control Process PR</title>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <!-- Firebase SDK v10 Compat Mode -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -114,6 +116,7 @@
     .btn-upload { background: #4CAF50; color: white; }
     .btn-refresh { background: #2196F3; color: white; }
     .btn-project { background: #9b59b6; color: white; }
+    .btn-email { background: #e67e22; color: white; }
 
     #detailTableWrap table { width: 100%; border-collapse: collapse; font-size: 12px; }
     #detailTableWrap th, #detailTableWrap td { padding: 8px; text-align: left; border: 1px solid #ddd; }
@@ -156,6 +159,83 @@
     .btn-cancel-modal:hover { background: #bdc3c7; }
     .alias-hint { font-size: 11px; color: #999; margin-top: 2px; }
 
+    /* === EMAIL MODAL === */
+    #emailModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 10000; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto; }
+    #emailModal.open { display: flex; }
+    #emailModal .modal-box { max-width: 860px; }
+    #emailModal .modal-header { background: #e67e22; }
+
+    .email-tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 20px; }
+    .email-tab { padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: none; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .email-tab.active { color: #e67e22; border-bottom-color: #e67e22; }
+    .email-tab-pane { display: none; }
+    .email-tab-pane.active { display: block; }
+
+    /* Setup tab */
+    .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .setup-field { display: flex; flex-direction: column; gap: 5px; }
+    .setup-field label { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.04em; }
+    .setup-field input { padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; transition: border-color 0.2s; }
+    .setup-field input:focus { outline: none; border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.1); }
+    .setup-field.full { grid-column: 1 / -1; }
+    .info-banner { background: #fef3e6; border: 1px solid #f39c12; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #7d5200; margin-bottom: 18px; line-height: 1.6; }
+    .step-list { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .step-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+    .step-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; background: #e67e22; color: white; border-radius: 50%; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .divider { height: 1px; background: #eee; margin: 18px 0; }
+
+    /* Trigger tab */
+    .trigger-card { border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; margin-bottom: 12px; background: #fafafa; }
+    .trigger-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .trigger-card-header input[type=text] { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-weight: 600; font-family: inherit; }
+    .trigger-card-header input[type=text]:focus { outline: none; border-color: #e67e22; }
+    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 24px; transition: 0.3s; }
+    .toggle-slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle-switch input:checked + .toggle-slider { background: #e67e22; }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+    .status-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .status-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid #ddd; background: white; color: #666; user-select: none; transition: all 0.15s; }
+    .status-chip.selected { background: #fef3e6; color: #c0392b; border-color: #f39c12; font-weight: 600; }
+    .trigger-fields { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; margin-bottom: 10px; }
+    .trigger-field { display: flex; flex-direction: column; gap: 5px; }
+    .trigger-field label { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.04em; }
+    .trigger-field input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; }
+    .trigger-field input:focus { outline: none; border-color: #e67e22; }
+    .delay-field { display: flex; flex-direction: column; gap: 5px; min-width: 120px; }
+    .delay-field label { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.04em; }
+    .delay-field input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; width: 100%; }
+    .btn-del-trigger { background: #e74c3c; color: white; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-del-trigger:hover { background: #c0392b; }
+    .btn-add-trigger { width: 100%; padding: 12px; background: #fef3e6; border: 2px dashed #e67e22; border-radius: 10px; color: #e67e22; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+    .btn-add-trigger:hover { background: #fde8cc; }
+
+    /* Template tab */
+    .tpl-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .tpl-field label { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.04em; }
+    .tpl-field input, .tpl-field textarea { padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; }
+    .tpl-field input:focus, .tpl-field textarea:focus { outline: none; border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.1); }
+    .tpl-field textarea { resize: vertical; min-height: 150px; }
+    .var-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .var-chip { padding: 3px 10px; background: #f0f0f0; border-radius: 4px; font-size: 11px; font-family: monospace; color: #555; cursor: pointer; transition: background 0.15s; }
+    .var-chip:hover { background: #fde8cc; color: #c0392b; }
+    .preview-area { background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; font-size: 13px; white-space: pre-wrap; line-height: 1.7; max-height: 200px; overflow-y: auto; color: #444; font-family: monospace; }
+
+    /* Log tab */
+    .log-entry { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .log-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .log-dot.success { background: #27ae60; }
+    .log-dot.fail { background: #e74c3c; }
+    .log-dot.skip { background: #95a5a6; }
+    .log-meta { color: #999; font-size: 11px; }
+    .log-empty { text-align: center; padding: 30px; color: #aaa; font-size: 14px; }
+
+    .save-email-btn { background: #e67e22; color: white; padding: 10px 28px; font-size: 15px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    .save-email-btn:hover { background: #cf6d17; }
+    .test-btn { background: white; color: #e67e22; border: 2px solid #e67e22; padding: 9px 20px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .test-btn:hover { background: #fef3e6; }
+
     /* === RESPONSIVE === */
     @media screen and (max-width: 480px) {
       body { padding: 10px; }
@@ -176,6 +256,8 @@
       .modal-box { border-radius: 12px; }
       .project-item { flex-direction: column; }
       .project-actions { flex-direction: row; flex-wrap: wrap; }
+      .setup-grid { grid-template-columns: 1fr; }
+      .trigger-fields { grid-template-columns: 1fr; }
     }
     @media screen and (min-width: 481px) and (max-width: 768px) {
       .row { flex-direction: column; gap: 20px; }
@@ -213,7 +295,7 @@
     }
     @media print {
       body { background: white; padding: 0; }
-      .header-bar, .control-buttons, .logout-btn, #loadingOverlay, #projectModal { display: none !important; }
+      .header-bar, .control-buttons, .logout-btn, #loadingOverlay, #projectModal, #emailModal { display: none !important; }
       .card { break-inside: avoid; box-shadow: none; border: 1px solid #333; }
       .row { break-inside: avoid; }
     }
@@ -247,6 +329,122 @@
     </div>
   </div>
 </div>
+
+<!-- ===================== EMAIL NOTIFICATION MODAL ===================== -->
+<div id="emailModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>📧 Email Notification Manager</h2>
+      <button class="modal-close" onclick="closeEmailModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+
+      <!-- TABS -->
+      <div class="email-tabs" style="padding:0 24px;">
+        <button class="email-tab active" onclick="switchEmailTab('setup')">⚙️ Setup</button>
+        <button class="email-tab" onclick="switchEmailTab('triggers')">🔔 Trigger Rules</button>
+        <button class="email-tab" onclick="switchEmailTab('template')">✉️ Template</button>
+        <button class="email-tab" onclick="switchEmailTab('log')">📋 Log</button>
+      </div>
+
+      <!-- TAB: SETUP -->
+      <div class="email-tab-pane active" id="epane-setup" style="padding:20px 24px;">
+        <div class="info-banner">
+          <strong>Cara setup EmailJS (gratis, tanpa backend):</strong>
+          <ol class="step-list" style="margin-top:8px;">
+            <li><span class="step-badge">1</span> Daftar di <strong>emailjs.com</strong> → buat Email Service (hubungkan Gmail/SMTP kamu)</li>
+            <li><span class="step-badge">2</span> Buat Email Template di EmailJS, gunakan variabel <code style="background:#fff3cd;padding:1px 5px;border-radius:3px;">&#123;&#123;pr_no&#125;&#125;</code> dll.</li>
+            <li><span class="step-badge">3</span> Salin Public Key, Service ID, Template ID ke form di bawah lalu klik Simpan.</li>
+          </ol>
+        </div>
+        <div class="setup-grid">
+          <div class="setup-field">
+            <label>Public Key (User ID)</label>
+            <input type="text" id="ejs-pubkey" placeholder="user_xxxxxxxxxxxxxxx" />
+          </div>
+          <div class="setup-field">
+            <label>Service ID</label>
+            <input type="text" id="ejs-service" placeholder="service_xxxxxxx" />
+          </div>
+          <div class="setup-field">
+            <label>Template ID</label>
+            <input type="text" id="ejs-template" placeholder="template_xxxxxxx" />
+          </div>
+          <div class="setup-field">
+            <label>From Name (nama pengirim)</label>
+            <input type="text" id="ejs-fromname" placeholder="Dashboard PR System" />
+          </div>
+          <div class="setup-field full">
+            <label>Test — kirim ke email ini</label>
+            <div style="display:flex;gap:8px;">
+              <input type="email" id="ejs-test-email" placeholder="your@email.com" style="flex:1;" />
+              <button class="test-btn" onclick="sendTestEmail()">📨 Kirim Test</button>
+            </div>
+          </div>
+        </div>
+        <div id="setup-status" style="margin-top:10px;font-size:13px;font-weight:600;"></div>
+      </div>
+
+      <!-- TAB: TRIGGERS -->
+      <div class="email-tab-pane" id="epane-triggers" style="padding:20px 24px;max-height:60vh;overflow-y:auto;">
+        <p style="font-size:13px;color:#666;margin-bottom:16px;">
+          Setiap trigger mengirim email ke penerima yang ditentukan saat PR berpindah ke status tertentu (opsional: hanya jika sudah delay N hari).
+        </p>
+        <div id="trigger-list-email"></div>
+        <button class="btn-add-trigger" onclick="addEmailTrigger()">+ Tambah Trigger Baru</button>
+      </div>
+
+      <!-- TAB: TEMPLATE -->
+      <div class="email-tab-pane" id="epane-template" style="padding:20px 24px;">
+        <div class="tpl-field">
+          <label>Subject Email</label>
+          <input type="text" id="etpl-subject" placeholder="[PR Alert] {{pr_no}} - Status: {{status}}" />
+        </div>
+        <div class="tpl-field">
+          <label>Body Email</label>
+          <textarea id="etpl-body"></textarea>
+          <div style="font-size:12px;color:#888;margin-top:4px;">
+            Klik variabel untuk menyisipkan ke posisi kursor:
+          </div>
+          <div class="var-chips">
+            <span class="var-chip" onclick="insertVar('{{pr_no}}')">{{pr_no}}</span>
+            <span class="var-chip" onclick="insertVar('{{pr_date}}')">{{pr_date}}</span>
+            <span class="var-chip" onclick="insertVar('{{item_name}}')">{{item_name}}</span>
+            <span class="var-chip" onclick="insertVar('{{status}}')">{{status}}</span>
+            <span class="var-chip" onclick="insertVar('{{user}}')">{{user}}</span>
+            <span class="var-chip" onclick="insertVar('{{project_label}}')">{{project_label}}</span>
+            <span class="var-chip" onclick="insertVar('{{delay_days}}')">{{delay_days}}</span>
+            <span class="var-chip" onclick="insertVar('{{process_date}}')">{{process_date}}</span>
+            <span class="var-chip" onclick="insertVar('{{amount}}')">{{amount}}</span>
+            <span class="var-chip" onclick="insertVar('{{curr}}')">{{curr}}</span>
+            <span class="var-chip" onclick="insertVar('{{remark}}')">{{remark}}</span>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="tpl-field">
+          <label>Preview (dengan data sample)</label>
+          <div class="preview-area" id="etpl-preview"></div>
+        </div>
+        <button class="test-btn" onclick="refreshEmailPreview()" style="margin-top:4px;">🔄 Refresh Preview</button>
+      </div>
+
+      <!-- TAB: LOG -->
+      <div class="email-tab-pane" id="epane-log" style="padding:20px 24px;max-height:60vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <strong style="font-size:14px;">Riwayat pengiriman email (sesi ini)</strong>
+          <button class="test-btn" style="font-size:12px;padding:5px 12px;" onclick="clearEmailLog()">🗑 Hapus Log</button>
+        </div>
+        <div id="email-log-list"></div>
+      </div>
+
+    </div><!-- end modal-body -->
+    <div class="modal-footer">
+      <button class="btn-cancel-modal" onclick="closeEmailModal()">Tutup</button>
+      <button class="save-email-btn" onclick="saveEmailConfig()">💾 Simpan Konfigurasi</button>
+    </div>
+  </div>
+</div>
+<!-- ===================== END EMAIL MODAL ===================== -->
 
 <!-- Login Page -->
 <div id="loginPage">
@@ -297,6 +495,9 @@
     <button id="projectBtn" class="btn btn-project" onclick="openProjectModal()" style="display:none;">
       ⚙️ Manage Project
     </button>
+    <button id="emailBtn" class="btn btn-email" onclick="openEmailModal()" style="display:none;">
+      📧 Email Notifikasi
+    </button>
     <button class="btn btn-refresh" onclick="location.reload()">
       🔄 Refresh Dashboard
     </button>
@@ -314,8 +515,6 @@
 
 /* =====================================================
    🔥 FIREBASE CONFIGURATION
-   Ganti semua nilai di bawah dengan config Firebase kamu!
-   Dapatkan dari: Firebase Console → Project Settings → Your Apps
 ===================================================== */
 const firebaseConfig = {
   apiKey:            "AIzaSyBMhua4WtHw6TTYyYPNIuOzpuqjxqTzWh8",
@@ -379,6 +578,42 @@ let currentUser = null;
 let rows        = [];
 let charts      = [];
 let projectList = [];
+
+/* =====================================================
+   EMAIL NOTIFICATION STATE
+===================================================== */
+let emailConfig = {
+  pubkey:    '',
+  serviceId: '',
+  templateId:'',
+  fromName:  'Dashboard PR System'
+};
+let emailTriggers = [];
+let emailTemplate = {
+  subject: '[PR Alert] {{pr_no}} - Status: {{status}} (Delay: {{delay_days}} hari)',
+  body:
+`Halo,
+
+PR berikut memerlukan perhatian Anda:
+
+PR No       : {{pr_no}}
+PR Date     : {{pr_date}}
+Item        : {{item_name}}
+Status      : {{status}}
+User        : {{user}}
+Project     : {{project_label}}
+Delay       : {{delay_days}} hari
+Process Date: {{process_date}}
+Amount      : {{curr}} {{amount}}
+Remark      : {{remark}}
+
+Mohon segera ditindaklanjuti.
+
+---
+Dashboard PR Control`
+};
+let emailLog = [];
+const EMAIL_SENT_CACHE_KEY = 'pr_email_sent_v1';
 
 /* =====================================================
    SECURITY / AUDIT LOG
@@ -501,12 +736,10 @@ async function signInWithGoogle() {
     btn.disabled = true;
     btn.textContent = 'Membuka Google Sign In...';
     showLoading("Membuka Google Sign In...");
-
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
     await auth.signInWithPopup(provider);
-    // onAuthStateChanged akan handle sisanya
   } catch (err) {
     hideLoading();
     btn.disabled = false;
@@ -538,10 +771,8 @@ async function logout(isTimeout = false) {
   }
 }
 
-/* DOMContentLoaded — cek auth state */
 window.addEventListener('DOMContentLoaded', () => {
   showLoading("Memeriksa sesi...");
-
   auth.onAuthStateChanged(async (user) => {
     if (user) {
       await handleAuthenticatedUser(user);
@@ -554,9 +785,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 async function handleAuthenticatedUser(user) {
   try {
-    // Cek USER_ROLES collection — document ID = email user
     const roleDoc = await db.collection('USER_ROLES').doc(user.email).get();
-
     if (!roleDoc.exists) {
       await logAuditEvent('ACCESS_DENIED', { email: user.email, reason: 'no_role_assigned' });
       showError('🚫 Akses ditolak. Hubungi administrator.');
@@ -565,14 +794,12 @@ async function handleAuthenticatedUser(user) {
       document.getElementById('loginPage').style.display = 'flex';
       return;
     }
-
     currentUser = {
       email:  user.email,
       name:   user.displayName || user.email.split('@')[0],
       avatar: user.photoURL    || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=667eea&color=fff`,
       role:   roleDoc.data().role
     };
-
     await logAuditEvent('LOGIN_SUCCESS', { email: user.email, role: currentUser.role });
     loginAttempts = 0;
     startSessionTimer();
@@ -589,7 +816,6 @@ async function handleAuthenticatedUser(user) {
 function showDashboard() {
   document.getElementById('loginPage').style.display  = 'none';
   document.getElementById('dashboardPage').style.display = 'block';
-
   document.getElementById('userBadge').textContent       = currentUser.role;
   document.getElementById('usernameDisplay').textContent = currentUser.name;
   document.getElementById('userAvatar').src              = currentUser.avatar;
@@ -597,10 +823,11 @@ function showDashboard() {
   if (currentUser.role !== 'MASTER') {
     document.getElementById('uploadBtn').style.display  = 'none';
     document.getElementById('projectBtn').style.display = 'none';
+    document.getElementById('emailBtn').style.display   = 'none';
   } else {
     document.getElementById('projectBtn').style.display = 'inline-block';
+    document.getElementById('emailBtn').style.display   = 'inline-block';
   }
-
   loadAll();
 }
 
@@ -610,9 +837,10 @@ function showDashboard() {
 async function loadAll() {
   showLoading("Memuat data...");
   try {
-    const [projSnapshot, dataSnapshot] = await Promise.all([
+    const [projSnapshot, dataSnapshot, emailSnapshot] = await Promise.all([
       db.collection('PROJECT_CONFIG').orderBy('order_index').get(),
-      db.collection('PR_LIST').get()
+      db.collection('PR_LIST').get(),
+      db.collection('EMAIL_CONFIG').doc('settings').get()
     ]);
 
     projectList = projSnapshot.docs.map(doc => {
@@ -629,13 +857,26 @@ async function loadAll() {
       r["USER"] === ACTIVE_USER &&
       !EXCLUDED_STATUS.has(r["STATUS PR"])
     );
+
+    // Load email config from Firestore
+    if (emailSnapshot.exists) {
+      const ed = emailSnapshot.data();
+      emailConfig   = ed.config   || emailConfig;
+      emailTriggers = ed.triggers || emailTriggers;
+      emailTemplate = ed.template || emailTemplate;
+    }
+
     const periodText = getPRDatePeriod(rows);
     document.getElementById("periodInfo").textContent = periodText || "";
-
     await displayLastUpdatedFromFirestore();
 
     Chart.register(ChartDataLabels);
     renderCharts();
+
+    // Auto-run email check after data loads
+    if (emailConfig.pubkey && emailConfig.pubkey !== '') {
+      checkAndSendEmailAlerts();
+    }
 
   } catch (err) {
     console.error(err);
@@ -723,25 +964,20 @@ function collectProjectsFromForm() {
   });
   return result;
 }
-
 async function saveProjects() {
   const projects = collectProjectsFromForm();
   for (const p of projects) {
     if (!p.key)   { alert("Ada project yang KEY-nya kosong. Harap isi semua KEY."); return; }
     if (!p.label) { alert(`Project dengan key "${p.key}" belum punya label.`); return; }
   }
-
   showLoading("Menyimpan konfigurasi project...");
   try {
-    // Hapus semua project lama
     const oldSnap = await db.collection('PROJECT_CONFIG').get();
     if (oldSnap.docs.length > 0) {
       const delBatch = db.batch();
       oldSnap.docs.forEach(doc => delBatch.delete(doc.ref));
       await delBatch.commit();
     }
-
-    // Insert project baru
     if (projects.length > 0) {
       const insBatch = db.batch();
       projects.forEach((p, idx) => {
@@ -750,7 +986,6 @@ async function saveProjects() {
       });
       await insBatch.commit();
     }
-
     await logAuditEvent('PROJECT_SAVE', { count: projects.length });
     projectList = projects;
     closeProjectModal();
@@ -764,7 +999,6 @@ async function saveProjects() {
     alert("❌ Gagal menyimpan: " + err.message);
   }
 }
-
 function initDragDrop() {
   const list  = document.getElementById("projectList");
   const items = list.querySelectorAll(".project-item");
@@ -796,6 +1030,285 @@ function initDragDrop() {
 }
 
 /* =====================================================
+   EMAIL NOTIFICATION MODAL
+===================================================== */
+function openEmailModal() {
+  if (currentUser.role !== 'MASTER') return;
+  populateEmailForm();
+  document.getElementById("emailModal").classList.add("open");
+  switchEmailTab('setup');
+}
+function closeEmailModal() {
+  document.getElementById("emailModal").classList.remove("open");
+}
+function switchEmailTab(name) {
+  document.querySelectorAll('.email-tab').forEach((t, i) => {
+    const names = ['setup','triggers','template','log'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.email-tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('epane-' + name).classList.add('active');
+  if (name === 'template') refreshEmailPreview();
+  if (name === 'log') renderEmailLog();
+}
+function populateEmailForm() {
+  document.getElementById('ejs-pubkey').value    = emailConfig.pubkey    || '';
+  document.getElementById('ejs-service').value   = emailConfig.serviceId || '';
+  document.getElementById('ejs-template').value  = emailConfig.templateId|| '';
+  document.getElementById('ejs-fromname').value  = emailConfig.fromName  || 'Dashboard PR System';
+  document.getElementById('etpl-subject').value  = emailTemplate.subject || '';
+  document.getElementById('etpl-body').value     = emailTemplate.body    || '';
+  renderEmailTriggers();
+}
+
+/* --- Triggers --- */
+function renderEmailTriggers() {
+  const el = document.getElementById('trigger-list-email');
+  if (!emailTriggers.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-size:14px;">Belum ada trigger. Klik tombol di bawah untuk menambah.</div>';
+    return;
+  }
+  el.innerHTML = emailTriggers.map((t, i) => `
+    <div class="trigger-card">
+      <div class="trigger-card-header">
+        <input type="text" value="${escHtml(t.name)}" onchange="emailTriggers[${i}].name=this.value" placeholder="Nama trigger..." />
+        <label class="toggle-switch" title="${t.active?'Aktif':'Nonaktif'}">
+          <input type="checkbox" ${t.active?'checked':''} onchange="emailTriggers[${i}].active=this.checked;renderEmailTriggers()">
+          <span class="toggle-slider"></span>
+        </label>
+        <button class="btn-del-trigger" onclick="deleteEmailTrigger(${i})">🗑</button>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">
+        Kirim email saat PR masuk ke status:
+      </div>
+      <div class="status-grid">
+        ${STATUS_PR.map(s => `<span class="status-chip${(t.statuses||[]).includes(s)?' selected':''}" onclick="toggleEmailStatus(${i},'${s}')">${s}</span>`).join('')}
+      </div>
+      <div class="trigger-fields">
+        <div class="trigger-field">
+          <label>Penerima email (pisahkan dengan koma)</label>
+          <input type="text" value="${escHtml((t.recipients||[]).join(', '))}"
+            onchange="emailTriggers[${i}].recipients=this.value.split(',').map(e=>e.trim()).filter(Boolean)"
+            placeholder="email1@company.com, email2@company.com" />
+        </div>
+        <div class="delay-field">
+          <label>Min. delay (hari)</label>
+          <input type="number" min="0" max="14" value="${t.delayMin||0}"
+            onchange="emailTriggers[${i}].delayMin=parseInt(this.value)||0" />
+        </div>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:4px;">
+        💡 Delay = 0 berarti kirim segera saat status terpenuhi. Isi &gt;0 jika ingin hanya kirim setelah PR stuck N hari.
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleEmailStatus(idx, status) {
+  const t = emailTriggers[idx];
+  if (!t.statuses) t.statuses = [];
+  const pos = t.statuses.indexOf(status);
+  if (pos > -1) t.statuses.splice(pos, 1); else t.statuses.push(status);
+  renderEmailTriggers();
+}
+
+function addEmailTrigger() {
+  emailTriggers.push({ name: 'Trigger Baru', statuses: [], recipients: [], delayMin: 0, active: true });
+  renderEmailTriggers();
+  document.getElementById('trigger-list-email').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function deleteEmailTrigger(idx) {
+  if (!confirm('Hapus trigger ini?')) return;
+  emailTriggers.splice(idx, 1);
+  renderEmailTriggers();
+}
+
+/* --- Template --- */
+function insertVar(v) {
+  const ta = document.getElementById('etpl-body');
+  const start = ta.selectionStart;
+  const end   = ta.selectionEnd;
+  ta.value = ta.value.substring(0, start) + v + ta.value.substring(end);
+  ta.selectionStart = ta.selectionEnd = start + v.length;
+  ta.focus();
+}
+
+function refreshEmailPreview() {
+  const sample = {
+    pr_no: 'PR-2024-001', pr_date: '2024-01-15', item_name: 'SPARE PART ENGINE',
+    status: 'APPROVE MANAGER', user: 'MILA', project_label: 'Fortuner CCV (Reguler)',
+    delay_days: '5', process_date: '2024-01-10', amount: '15.000.000', curr: 'IDR',
+    remark: 'Urgent'
+  };
+  let body = document.getElementById('etpl-body').value || emailTemplate.body;
+  Object.entries(sample).forEach(([k,v]) => { body = body.replaceAll(`{{${k}}}`, v); });
+  document.getElementById('etpl-preview').textContent = body;
+}
+
+/* --- Save all to Firestore --- */
+async function saveEmailConfig() {
+  // Collect current form values
+  emailConfig.pubkey     = document.getElementById('ejs-pubkey').value.trim();
+  emailConfig.serviceId  = document.getElementById('ejs-service').value.trim();
+  emailConfig.templateId = document.getElementById('ejs-template').value.trim();
+  emailConfig.fromName   = document.getElementById('ejs-fromname').value.trim() || 'Dashboard PR System';
+  emailTemplate.subject  = document.getElementById('etpl-subject').value.trim();
+  emailTemplate.body     = document.getElementById('etpl-body').value;
+
+  if (!emailConfig.pubkey || !emailConfig.serviceId || !emailConfig.templateId) {
+    alert('⚠️ Lengkapi Public Key, Service ID, dan Template ID terlebih dahulu di tab Setup.');
+    switchEmailTab('setup');
+    return;
+  }
+
+  showLoading('Menyimpan konfigurasi email...');
+  try {
+    await db.collection('EMAIL_CONFIG').doc('settings').set({
+      config:   emailConfig,
+      triggers: emailTriggers,
+      template: emailTemplate,
+      updated:  firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await logAuditEvent('EMAIL_CONFIG_SAVE', { triggers: emailTriggers.length });
+    hideLoading();
+    closeEmailModal();
+    alert('✅ Konfigurasi email berhasil disimpan!');
+  } catch (err) {
+    hideLoading();
+    alert('❌ Gagal menyimpan: ' + err.message);
+  }
+}
+
+/* --- Test email --- */
+async function sendTestEmail() {
+  const to = document.getElementById('ejs-test-email').value.trim();
+  const statusEl = document.getElementById('setup-status');
+  if (!to) { statusEl.style.color='#c0392b'; statusEl.textContent='⚠️ Masukkan email tujuan test.'; return; }
+
+  const pk = document.getElementById('ejs-pubkey').value.trim();
+  const sv = document.getElementById('ejs-service').value.trim();
+  const tm = document.getElementById('ejs-template').value.trim();
+  if (!pk || !sv || !tm) { statusEl.style.color='#c0392b'; statusEl.textContent='⚠️ Isi Public Key, Service ID, dan Template ID dulu.'; return; }
+
+  statusEl.style.color='#e67e22'; statusEl.textContent='📨 Mengirim test email...';
+  try {
+    emailjs.init(pk);
+    const params = {
+      to_email: to, from_name: document.getElementById('ejs-fromname').value || 'Dashboard PR System',
+      pr_no:'TEST-001', pr_date:'2024-01-15', item_name:'TEST ITEM',
+      status:'TEST STATUS', user:'MILA', project_label:'Test Project',
+      delay_days:'3', process_date:'2024-01-12', amount:'1.000.000', curr:'IDR', remark:'Test'
+    };
+    await emailjs.send(sv, tm, params);
+    statusEl.style.color='#27ae60'; statusEl.textContent='✅ Test email berhasil dikirim ke ' + to;
+    addEmailLog('success', 'TEST', to, 'Test email', '-');
+  } catch (err) {
+    statusEl.style.color='#c0392b'; statusEl.textContent='❌ Gagal: ' + err.text || err.message || JSON.stringify(err);
+    addEmailLog('fail', 'TEST', to, 'Test email', err.text || err.message || 'unknown error');
+  }
+}
+
+/* =====================================================
+   EMAIL SENDING ENGINE
+===================================================== */
+function getSentCache() {
+  try { return JSON.parse(localStorage.getItem(EMAIL_SENT_CACHE_KEY) || '{}'); }
+  catch { return {}; }
+}
+function markSent(key) {
+  const c = getSentCache(); c[key] = new Date().toISOString();
+  localStorage.setItem(EMAIL_SENT_CACHE_KEY, JSON.stringify(c));
+}
+
+function buildEmailParams(row, toEmail, triggerName) {
+  const proj = projectList.find(p => detectProject(row['BIIL APPROVAL']) === p.key);
+  return {
+    to_email:      toEmail,
+    from_name:     emailConfig.fromName || 'Dashboard PR System',
+    pr_no:         row['PR NO']          || '',
+    pr_date:       row['PR DATE']        || '',
+    item_name:     row['ITEM NAME']      || '',
+    status:        row['STATUS PR']      || '',
+    user:          row['USER']           || '',
+    project_label: proj ? proj.label : (row['BIIL APPROVAL'] || ''),
+    delay_days:    row._delayDays        || '0',
+    process_date:  row['PROCESS DATE']   || '',
+    amount:        formatNumber(row['AMOUNT']) || '',
+    curr:          row['CURR']           || '',
+    remark:        row['REMARK']         || '',
+    trigger_name:  triggerName
+  };
+}
+
+async function checkAndSendEmailAlerts() {
+  if (!emailConfig.pubkey || !emailConfig.serviceId || !emailConfig.templateId) return;
+  if (!emailTriggers.length) return;
+
+  const activeTriggers = emailTriggers.filter(t => t.active && (t.statuses||[]).length && (t.recipients||[]).length);
+  if (!activeTriggers.length) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const cache = getSentCache();
+
+  emailjs.init(emailConfig.pubkey);
+
+  for (const trigger of activeTriggers) {
+    for (const row of rows) {
+      if (!(trigger.statuses || []).includes(row['STATUS PR'])) continue;
+
+      const procDate = parseProcessDate(row['PROCESS DATE']);
+      const delayDays = procDate ? Math.floor((today - procDate) / 86400000) : 0;
+      if (delayDays < (trigger.delayMin || 0)) continue;
+
+      row._delayDays = delayDays;
+
+      for (const recipient of (trigger.recipients || [])) {
+        const cacheKey = `${row['PR NO']}_${row['STATUS PR']}_${trigger.name}_${recipient}_${today.toDateString()}`;
+        if (cache[cacheKey]) continue;
+
+        try {
+          const params = buildEmailParams(row, recipient, trigger.name);
+          await emailjs.send(emailConfig.serviceId, emailConfig.templateId, params);
+          markSent(cacheKey);
+          addEmailLog('success', row['PR NO'] || '-', recipient, row['STATUS PR'] || '-', trigger.name);
+          console.log(`✅ Email sent: ${row['PR NO']} → ${recipient}`);
+        } catch (err) {
+          addEmailLog('fail', row['PR NO'] || '-', recipient, row['STATUS PR'] || '-', err.text || err.message || 'error');
+          console.error(`❌ Email failed: ${row['PR NO']} → ${recipient}`, err);
+        }
+      }
+    }
+  }
+}
+
+/* --- Email Log --- */
+function addEmailLog(type, prNo, recipient, status, note) {
+  emailLog.unshift({ type, prNo, recipient, status, note, time: new Date().toLocaleTimeString('id-ID') });
+  if (emailLog.length > 100) emailLog.pop();
+}
+function renderEmailLog() {
+  const el = document.getElementById('email-log-list');
+  if (!emailLog.length) {
+    el.innerHTML = '<div class="log-empty">📭 Belum ada riwayat pengiriman email di sesi ini.</div>';
+    return;
+  }
+  el.innerHTML = emailLog.map(e => `
+    <div class="log-entry">
+      <div class="log-dot ${e.type}"></div>
+      <div>
+        <div><strong>${escHtml(e.prNo)}</strong> → <span style="color:#555">${escHtml(e.recipient)}</span></div>
+        <div style="color:#666;font-size:12px;">Status: ${escHtml(e.status)} | ${escHtml(e.note)}</div>
+        <div class="log-meta">${e.time}</div>
+      </div>
+    </div>`).join('');
+}
+function clearEmailLog() {
+  emailLog = [];
+  renderEmailLog();
+}
+
+/* =====================================================
    UTILITY FUNCTIONS
 ===================================================== */
 function normalizeKey(key) {
@@ -824,7 +1337,6 @@ function formatLastUpdated(timestamp) {
   const year   = parts.find(p => p.type === 'year').value;
   return `Last updated: ${time} · ${day} ${month} ${year}`;
 }
-
 async function displayLastUpdatedFromFirestore() {
   const element = document.getElementById('lastUpdated');
   if (!element) return;
@@ -835,7 +1347,6 @@ async function displayLastUpdatedFromFirestore() {
     }
   } catch (err) { console.log('Error fetching last_updated:', err); }
 }
-
 function parsePRDate(value) {
   if (!value) return null;
   const d = new Date(value + "T00:00:00");
@@ -904,7 +1415,6 @@ function buildPieData(projectKey) {
     prMap:  STATUS_PR.map(s => map[s] ? Array.from(map[s]) : [])
   };
 }
-
 function buildDelayData(projectKey) {
   const today = new Date(); today.setHours(0,0,0,0);
   const statusMap = {};
@@ -922,7 +1432,6 @@ function buildDelayData(projectKey) {
     if (!statusMap[status][diff]) statusMap[status][diff] = [];
     if (!statusMap[status][diff].includes(r["PR NO"])) statusMap[status][diff].push(r["PR NO"]);
   });
-
   const labels   = getOrderedBarStatus(Object.keys(statusMap));
   const datasets = [];
   labels.forEach(status => {
@@ -932,7 +1441,7 @@ function buildDelayData(projectKey) {
     delays.forEach(delay => {
       const delta = delay - prev;
       datasets.push({
-        label:  status, data: labels.map(l => l === status ? delta : 0),
+        label: status, data: labels.map(l => l === status ? delta : 0),
         delayValue: delay, prList: statusMap[status][delay],
         backgroundColor: getDelayColor(delay)
       });
@@ -963,19 +1472,16 @@ function showDetailTable(projectKey, status, prList, delay = null) {
   });
   renderDetailTable(filtered, projectKey, status);
 }
-
 function renderDetailTable(data, projectKey, status) {
   const slotId = `detail-slot-${projectKey.replace(/[^a-zA-Z0-9]/g, "_")}`;
   const slot   = document.getElementById(slotId);
   if (!slot) return;
   slot.innerHTML = ""; slot.style.display = "block";
-
   const proj        = projectList.find(p => p.key === projectKey);
   const projLabel   = proj ? proj.label : projectKey;
   const totalAmount = data.reduce((sum, r) => { const amt = parseFloat(r["AMOUNT"]); return sum + (isNaN(amt) ? 0 : amt); }, 0);
   const currencies  = [...new Set(data.map(r => r["CURR"]).filter(Boolean))];
   const currDisplay = currencies.join(', ');
-
   let html = `
     <div class="card" id="detailTableWrap">
       <h2>${escHtml(projLabel)}<br>Status: ${escHtml(status)}<br>
@@ -986,7 +1492,6 @@ function renderDetailTable(data, projectKey, status) {
         <table border="1" cellpadding="6" cellspacing="0" style="font-size:12px;white-space:nowrap;">
           <thead><tr>${DETAIL_COLUMNS.map(c => `<th>${escHtml(c)}</th>`).join("")}</tr></thead>
           <tbody>`;
-
   data.forEach(r => {
     html += `<tr>`;
     DETAIL_COLUMNS.forEach(c => {
@@ -999,7 +1504,6 @@ function renderDetailTable(data, projectKey, status) {
     });
     html += `</tr>`;
   });
-
   html += `<tr style="font-weight:bold;background:#f0f0f0;">`;
   DETAIL_COLUMNS.forEach(c => {
     if (c === "ITEM NAME") {
@@ -1023,11 +1527,9 @@ function clearCharts() {
   charts = [];
   document.getElementById("chartContainer").innerHTML = "";
 }
-
 function renderCharts() {
   clearCharts();
   const container = document.getElementById("chartContainer");
-
   if (projectList.length === 0) {
     container.innerHTML = `
       <div style="text-align:center;padding:40px;color:#888;">
@@ -1038,7 +1540,6 @@ function renderCharts() {
       </div>`;
     return;
   }
-
   projectList.forEach(proj => {
     const key     = proj.key;
     const row     = document.createElement("div"); row.className = "row";
@@ -1048,27 +1549,22 @@ function renderCharts() {
     const barTitle = document.createElement("h2"); barTitle.textContent = "PR Delay Status (Days)";
     const pieCanvas = document.createElement("canvas");
     const barCanvas = document.createElement("canvas");
-
     pieCard.appendChild(pieTitle);
     pieCard.appendChild(pieCanvas);
     const legendDiv = document.createElement("div"); legendDiv.className = "pie-legend";
     pieCard.appendChild(legendDiv);
-
     barCard.appendChild(barTitle);
     barCard.appendChild(barCanvas);
     row.appendChild(pieCard);
     row.appendChild(barCard);
     container.appendChild(row);
-
     const slotId     = `detail-slot-${key.replace(/[^a-zA-Z0-9]/g, "_")}`;
     const detailSlot = document.createElement("div");
     detailSlot.id    = slotId;
     detailSlot.style.display = "none";
     container.appendChild(detailSlot);
-
     const pie = buildPieData(key);
     const bar = buildDelayData(key);
-
     if (pie.data.length) {
       const colors = pie.labels.map((_,i) => `hsl(${(i*360)/pie.labels.length},65%,55%)`);
       const pieChart = new Chart(pieCanvas, {
@@ -1092,7 +1588,6 @@ function renderCharts() {
         }
       });
       charts.push(pieChart);
-
       pie.labels.forEach((label, i) => {
         const item = document.createElement("div"); item.className = "pie-legend-item";
         const colorBox = document.createElement("div"); colorBox.className = "pie-legend-color"; colorBox.style.background = colors[i];
@@ -1101,7 +1596,6 @@ function renderCharts() {
         item.appendChild(colorBox); item.appendChild(text); legendDiv.appendChild(item);
       });
     }
-
     if (bar.datasets.length) {
       charts.push(new Chart(barCanvas, {
         type: "bar",
@@ -1140,27 +1634,20 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
   const file   = e.target.files[0];
   if (!file) return;
   const status = document.getElementById('uploadStatus');
-
   try {
     status.textContent = '⏳ Membaca file...';
     status.style.color = 'orange';
-
     const ext = file.name.split(".").pop().toLowerCase();
     let data;
-    if (ext === "csv")              data = await parseCSV(file);
+    if (ext === "csv")                    data = await parseCSV(file);
     else if (ext === "xlsx" || ext === "xls") data = await parseExcel(file);
     else throw new Error("Format tidak didukung. Gunakan CSV atau Excel.");
-
     if (data.length === 0) throw new Error('File kosong atau format tidak valid');
-
     await logAuditEvent('UPLOAD_START', { rows: data.length, filename: file.name });
     showLoading(`Menghapus data lama...`);
-
-    // === HAPUS SEMUA DATA LAMA (batch 500) ===
     status.textContent = '🗑️ Mengambil data lama...';
     const oldSnap  = await db.collection('PR_LIST').get();
     const totalOld = oldSnap.docs.length;
-
     if (totalOld > 0) {
       const BATCH_SIZE = 500;
       for (let i = 0; i < oldSnap.docs.length; i += BATCH_SIZE) {
@@ -1171,8 +1658,6 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
         showLoading(`Menghapus data lama... ${Math.min(i + BATCH_SIZE, totalOld)}/${totalOld}`);
       }
     }
-
-    // === INSERT DATA BARU (batch 500) ===
     const BATCH_SIZE = 500;
     for (let i = 0; i < data.length; i += BATCH_SIZE) {
       const batch = db.batch();
@@ -1184,16 +1669,12 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
       status.textContent = `📤 Upload: ${Math.min(i + BATCH_SIZE, data.length)}/${data.length}...`;
       showLoading(`Mengupload data... ${Math.min(i + BATCH_SIZE, data.length)}/${data.length}`);
     }
-
-    // === UPDATE TIMESTAMP ===
     await db.collection('SYSTEM_INFO').doc('last_updated').set({ value: new Date().toISOString() });
     await logAuditEvent('UPLOAD_SUCCESS', { rows: data.length, filename: file.name });
-
     status.textContent = `✅ BERHASIL! ${data.length} data berhasil diupdate. Merefresh dashboard...`;
     status.style.color = 'green';
     hideLoading();
     setTimeout(() => location.reload(), 2000);
-
   } catch (err) {
     hideLoading();
     await logAuditEvent('UPLOAD_ERROR', { error: err.message, filename: file?.name });
@@ -1205,7 +1686,7 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
 });
 
 /* =====================================================
-   FILE PARSERS (identik dengan versi Supabase)
+   FILE PARSERS
 ===================================================== */
 function parseCSV(file) {
   return new Promise((resolve, reject) => {
@@ -1244,7 +1725,6 @@ function parseCSV(file) {
     reader.readAsText(file);
   });
 }
-
 function parseCSVLine(line, delimiter = ',') {
   const result = []; let current = ''; let inQuotes = false;
   for (let i = 0; i < line.length; i++) {
@@ -1256,81 +1736,40 @@ function parseCSVLine(line, delimiter = ',') {
   result.push(current.trim());
   return result.map(v => v.replace(/^"|"$/g, ''));
 }
-
 function parseExcel(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
       try {
-        const wb = XLSX.read(e.target.result, {
-          type: "array",
-          cellDates: true
-        });
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
         const sh = wb.Sheets[wb.SheetNames[0]];
-
-        // Baca dua kali: raw untuk angka, formatted untuk tanggal
         const jsonRaw = XLSX.utils.sheet_to_json(sh, { raw: true });
-        const jsonFmt = XLSX.utils.sheet_to_json(sh, {
-          raw: false,
-          dateNF: "yyyy-mm-dd"
-        });
-
-        if (!jsonRaw.length) {
-          reject(new Error("Sheet Excel kosong"));
-          return;
-        }
-
+        const jsonFmt = XLSX.utils.sheet_to_json(sh, { raw: false, dateNF: "yyyy-mm-dd" });
+        if (!jsonRaw.length) { reject(new Error("Sheet Excel kosong")); return; }
         const NUMERIC = new Set(["PRICE", "AMOUNT", "QTY"]);
         const DATE_KEYS = new Set();
-
-        // Deteksi kolom tanggal dari baris pertama jsonFmt
-        // (nilai formatted berbentuk yyyy-mm-dd tapi raw-nya adalah number Excel serial)
         if (jsonFmt.length > 0 && jsonRaw.length > 0) {
           Object.keys(jsonFmt[0]).forEach(k => {
             const rawVal = jsonRaw[0][k];
             const fmtVal = jsonFmt[0][k];
-            // Serial date Excel: angka bulat di range tahun 1900-2200
-            if (
-              typeof rawVal === "number" &&
-              rawVal > 25569 && rawVal < 80000 &&
-              typeof fmtVal === "string" &&
-              /^\d{4}-\d{2}-\d{2}$/.test(fmtVal)
-            ) {
+            if (typeof rawVal === "number" && rawVal > 25569 && rawVal < 80000 &&
+                typeof fmtVal === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fmtVal)) {
               DATE_KEYS.add(k);
             }
           });
         }
-
         const data = jsonRaw.map((row, rowIdx) => {
           const obj = {};
           Object.keys(row).forEach(k => {
             let val = row[k];
-            if (val === "" || val === undefined || val === null) {
-              obj[k] = null;
-              return;
-            }
+            if (val === "" || val === undefined || val === null) { obj[k] = null; return; }
             const KEY = k.toUpperCase().trim();
-
-            // Kolom numerik: ambil raw number langsung
             if (NUMERIC.has(KEY)) {
-              if (typeof val === "number") {
-                obj[k] = val;
-              } else {
-                const c = val.toString().trim()
-                  .replace(/\./g, "").replace(",", ".");
-                const n = parseFloat(c);
-                obj[k] = isNaN(n) ? null : n;
-              }
+              if (typeof val === "number") { obj[k] = val; }
+              else { const c = val.toString().trim().replace(/\./g,"").replace(",","."); const n = parseFloat(c); obj[k] = isNaN(n) ? null : n; }
               return;
             }
-
-            // Kolom tanggal: ambil versi formatted (yyyy-mm-dd)
-            if (DATE_KEYS.has(k)) {
-              obj[k] = (jsonFmt[rowIdx] && jsonFmt[rowIdx][k]) || null;
-              return;
-            }
-
-            // Sel Date object (dari cellDates:true)
+            if (DATE_KEYS.has(k)) { obj[k] = (jsonFmt[rowIdx] && jsonFmt[rowIdx][k]) || null; return; }
             if (val instanceof Date) {
               const yyyy = val.getFullYear();
               const mm = String(val.getMonth() + 1).padStart(2, "0");
@@ -1338,16 +1777,12 @@ function parseExcel(file) {
               obj[k] = `${yyyy}-${mm}-${dd}`;
               return;
             }
-
             obj[k] = val;
           });
           return obj;
         });
-
         resolve(data);
-      } catch (err) {
-        reject(err);
-      }
+      } catch (err) { reject(err); }
     };
     reader.onerror = () => reject(new Error("Gagal membaca file Excel"));
     reader.readAsArrayBuffer(file);
